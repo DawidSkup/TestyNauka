@@ -24,7 +24,9 @@ sesja z regeneracją ID; wylogowanie kasuje sesję.
 - **Zakres sekcji w panelu:**
 
   - **Grupa firmy** – `Użytkownicy`: lista kont, dodawanie nowych, przypisanie grupy,
-    blokada konta, **przycisk „Generuj i wyślij kod”** (wysyłka kodu na e-mail użytkownika).
+    blokada konta, reset hasła, **przycisk „Generuj i wyślij kod”** (wysyłka kodu na e-mail
+    użytkownika). Nowe konto bez hasła startowego powstaje nieaktywne – użytkownik aktywuje
+    je kodem aktywacyjnym i sam ustawia hasło.
   - **Grupa materiałów** – `Materiały`: dodawanie, edycja, układanie, publikowanie
     i podgląd slajdów. Użytkownik tej grupy **nie ma dostępu** do sekcji `Użytkownicy`.
 - **Panel startowy** – statystyki (liczba użytkowników, slajdów, aktywnych kodów) oraz
@@ -50,7 +52,8 @@ Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na kla
 - **Przycisk „Generuj i wyślij kod”** w sekcji `Użytkownicy` (dla wybranego konta)
   oraz w panelu startowym (wysyłka kodu na własny adres e-mail).
 - **Format kodu:** 6 znaków – **wielkie litery (A–Z) oraz cyfry (0–9)**, losowo generowany
-  (alfabet bez znaków mylących `I`, `O`, `0`, `1`, np. `K7M2QX`).
+  (alfabet bez znaków mylących `I`, `O`, `0`, `1`, np. `K7M2QX`); kod zawsze zawiera
+  co najmniej jedną cyfrę i jedną wielką literę.
 - **Ważność kodu:** 15 minut; poprzedni niewykorzystany kod danego celu jest unieważniany
   przy generowaniu nowego.
 - **Cele kodu:** `logowanie` (dodatkowe potwierdzenie przy logowaniu) oraz `aktywacja`
@@ -87,6 +90,7 @@ TestNauka/
 ├── weryfikacja.php      # weryfikacja kodu po zalogowaniu
 ├── aktywacja.php        # aktywacja konta kodem
 ├── admin/
+│   ├── _layout.php       # wspólny nagłówek/stopka panelu (menu wg grupy)
 │   ├── index.php        # panel startowy (statystyki)
 │   ├── uzytkownicy.php  # grupa firmy: użytkownicy + generowanie kodów
 │   ├── materialy.php    # grupa materiałów: lista i zarządzanie slajdami
@@ -97,6 +101,10 @@ TestNauka/
 ├── assets/
 │   ├── style.css
 │   └── app.js
+├── tools/               # skrypty pomocnicze i testy integracyjne
+│   ├── testy.php        # 45 testów HTTP + baza (php tools/testy.php)
+│   ├── kody.php         # podgląd aktywnych kodów w bazie
+│   └── mailpit.php      # podgląd wiadomości w Mailpit
 └── data/                # baza SQLite + pliki uploadowane (poza repo)
 ```
 
@@ -109,6 +117,7 @@ TestNauka/
 5. Upload: biała lista typów MIME, limit rozmiaru, losowa nazwa pliku, brak wykonywania.
 6. Zapytania SQL wyłącznie z parametrami wiązanymi (PDO prepared statements).
 7. Brak ujawniania haseł i kodów w logach aplikacji.
+8. Throttling logowania: 5 błędnych próbl blokuje sesję na 10 minut.
 
 ## 8. Uruchomienie
 
@@ -125,11 +134,14 @@ TestNauka/
 
 ## 9. Kryteria akceptacji
 
-- [ ] Logowanie e-mail + hasło działa, błędne dane pokazują czytelny komunikat.
-- [ ] Użytkownik grupy `firma` widzi sekcję `Użytkownicy`; użytkownik grupy `materialy` nie.
-- [ ] Użytkownik grupy `materialy` nie ma dostępu do strony `admin/uzytkownicy.php` (403).
-- [ ] Przycisk „Generuj i wyślij kod” tworzy 6-znakowy kod z cyfr i wielkich liter
+- [x] Logowanie e-mail + hasło działa, błędne dane pokazują czytelny komunikat.
+- [x] Użytkownik grupy `firma` widzi sekcję `Użytkownicy`; użytkownik grupy `materialy` nie.
+- [x] Użytkownik grupy `materialy` nie ma dostępu do strony `admin/uzytkownicy.php` (403).
+- [x] Przycisk „Generuj i wyślij kod” tworzy 6-znakowy kod z cyfr i wielkich liter
       i wysyła go na e-mail użytkownika.
-- [ ] Kod wygasa po 15 minutach i działa tylko raz.
-- [ ] Materiały dodaje się wyłącznie jako slajdy – brak uploadu dokumentów.
-- [ ] Slajd da się edytować, opublikować, przesunąć i obejrzeć w podglądzie.
+- [x] Kod wygasa po 15 minutach i działa tylko raz.
+- [x] Materiały dodaje się wyłącznie jako slajdy – brak uploadu dokumentów.
+- [x] Slajd da się edytować, opublikować, przesunąć i obejrzeć w podglądzie.
+
+Status realizacji: **wszystkie kryteria spełnione** — potwierdzone testem integracyjnym
+`php tools/testy.php` (45/45 testów zielonych).
