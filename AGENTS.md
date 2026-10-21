@@ -38,7 +38,9 @@ Na stronie logowania użytkownik **wybiera sposób logowania** (dwie zakładki):
 
   - **Grupa firmy** – `Użytkownicy`: **wysyłka kodu rejestracyjnego** (administrator nie zakłada
     kont – podaje tylko e-mail i grupę), lista zaproszeń (status, wygaśnięcie, ponowna wysyłka,
-    anulowanie), lista istniejących kont, przypisanie grupy, blokada konta, reset hasła oraz
+    anulowanie), **dwie listy kont – „Administratorzy” (grupa `firma`) i „Użytkownicy”
+    (grupa `materialy`)**, przypisanie grupy (zmiana grupy przenosi konto między listami),
+    blokada konta, reset hasła oraz
     **przycisk „Generuj i wyślij kod”** (kod logowania 2FA na e-mail użytkownika).
   - **Grupa materiałów** – `Materiały`: dodawanie, edycja, układanie, publikowanie
     i podgląd slajdów. Użytkownik tej grupy **nie ma dostępu** do sekcji `Użytkownicy`.
@@ -151,7 +153,7 @@ TestNauka/
 │   ├── style.css
 │   └── app.js
 ├── tools/               # skrypty pomocnicze i testy integracyjne
-│   ├── testy.php        # 78 testów HTTP + baza (php tools/testy.php)
+│   ├── testy.php        # 79 testów HTTP + baza (php tools/testy.php)
 │   ├── kody.php         # podgląd aktywnych kodów i zaproszeń w bazie
 │   ├── stan.php         # podgląd stanu bazy (konta, zaproszenia, slajdy)
 │   ├── manual.php       # ręczna kontrola przepływu kod -> rejestracja -> logowanie
@@ -215,5 +217,8 @@ TestNauka/
 - [x] Logowanie kontem grupy `materialy` w trybie „Administrator” jest odrzucane, a kodem
       w trybie „Użytkownik” – jednorazowe (po użyciu kod przestaje działać).
 
+- [x] Lista kont w sekcji `Użytkownicy` jest podzielona na **„Administratorzy”** (grupa `firma`)
+      i **„Użytkownicy”** (grupa `materialy`); zmiana grupy przenosi konto między listami.
+
 Status realizacji: **wszystkie kryteria spełnione** — potwierdzone testem integracyjnym
-`php tools/testy.php` (78/78 testów zielonych).
+`php tools/testy.php` (79/79 testów zielonych).

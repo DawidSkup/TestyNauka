@@ -67,6 +67,13 @@ Sekcja `Użytkownicy` pokazuje też listę zaproszeń (status, termin ważności
 **„Wyślij ponownie”** i **„Anuluj”**, oraz przycisk **„Generuj i wyślij kod”**,
 którym administrator wysyła kod logowania do istniejącego konta.
 
+Lista kont jest podzielona na dwie sekcje:
+
+- **Administratorzy** – konta grupy `firma` (logowanie e-mail + hasło),
+- **Użytkownicy** – konta grupy `materialy` (logowanie samym kodem z e-maila).
+
+Zmiana grupy w tabeli (lista rozwijana „Grupa”) od razu przenosi konto do drugiej listy.
+
 ## Struktura
 
 ```

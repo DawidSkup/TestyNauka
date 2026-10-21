@@ -234,6 +234,16 @@ $stmtUsers = $pdo->prepare(
 $stmtUsers->execute([':now' => date('Y-m-d H:i:s')]);
 $users = $stmtUsers->fetchAll();
 
+/* Podział listy kont na dwie grupy: administratorzy (firma) i użytkownicy (materiały). */
+$admins     = array_values(array_filter(
+    $users,
+    static fn (array $u): bool => $u['grupa'] === GROUP_FIRMA
+));
+$listaUsers = array_values(array_filter(
+    $users,
+    static fn (array $u): bool => $u['grupa'] !== GROUP_FIRMA
+));
+
 /* Zaproszenia – oczekujące na rejestrację (najnowsze na górze). */
 $stmtZap = $pdo->prepare(
     'SELECT z.*, u.imie AS imie_zapraszajacego
@@ -244,6 +254,137 @@ $stmtZap = $pdo->prepare(
 );
 $stmtZap->execute();
 $zaproszenia = $stmtZap->fetchAll();
+
+/**
+ * Renderuje tabelę kont dla jednej grupy (wiersz = jedno konto).
+ *
+ * @param array<int,array<string,mixed>> $lista  konta danej grupy
+ * @param array<string,mixed>            $biezacy zalogowany użytkownik (znacznik „Ty”)
+ */
+function render_tabela_kont(array $lista, array $biezacy): void
+{
+    ?>
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Imię</th>
+                <th>E-mail</th>
+                <th>Grupa</th>
+                <th>Status</th>
+                <th>Aktywny kod</th>
+                <th>Wymóg kodu</th>
+                <th>Slajdy</th>
+                <th class="th-actions">Akcje</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($lista as $u): ?>
+                <tr>
+                    <td>
+                        <strong><?= e($u['imie']) ?></strong>
+                        <?php if ((int) $u['id'] === (int) $biezacy['id']): ?>
+                            <span class="badge badge-you">Ty</span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="mono"><?= e($u['email']) ?></td>
+                    <td>
+                        <form method="post" class="form-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="akcja" value="grupa">
+                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                            <select name="grupa" class="select-sm" onchange="this.form.submit()">
+                                <?php foreach (GROUPS as $key => $label): ?>
+                                    <option value="<?= e($key) ?>"<?= $u['grupa'] === $key ? ' selected' : '' ?>>
+                                        <?= e($label) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <noscript><button type="submit" class="btn btn-sm btn-ghost">Zapisz</button></noscript>
+                        </form>
+                    </td>
+                    <td>
+                        <?php if ((int) $u['aktywny'] === 1): ?>
+                            <span class="badge badge-ok">aktywne</span>
+                        <?php else: ?>
+                            <span class="badge badge-off">zablokowane</span>
+                        <?php endif; ?>
+                        <?php if ((int) $u['aktywowane'] !== 1): ?>
+                            <span class="badge badge-warn">nieaktywowane</span>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <?php if (!empty($u['aktywny_kod'])): ?>
+                            <span class="code-inline"><?= e($u['aktywny_kod']) ?></span>
+                        <?php else: ?>
+                            <span class="muted">—</span>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <?php if ((int) $u['wymaga_kod'] === 1): ?>
+                            <span class="badge badge-warn">wymaga kodu</span>
+                        <?php elseif ($u['grupa'] === GROUP_MATERIALY): ?>
+                            <span class="badge badge-ok">logowanie kodem</span>
+                        <?php else: ?>
+                            <span class="muted small">bez wymogu</span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="muted"><?= e((string) $u['liczba_slajdow']) ?></td>
+                    <td class="td-actions">
+                        <form method="post" class="form-inline" id="formKod<?= e((string) $u['id']) ?>">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="akcja" value="kod">
+                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                            <input type="hidden" name="cel" value="logowanie">
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                Generuj i wyślij kod
+                            </button>
+                        </form>
+
+                        <form method="post" class="form-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="akcja" value="wymaga_kod">
+                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                            <button type="submit" class="btn btn-sm btn-ghost">
+                                <?= (int) $u['wymaga_kod'] === 1 ? 'Bez wymogu kodu' : 'Wymaga kodu' ?>
+                            </button>
+                        </form>
+
+                        <form method="post" class="form-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="akcja" value="kod">
+                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                            <input type="hidden" name="cel" value="aktywacja">
+                            <button type="submit" class="btn btn-sm btn-ghost">Kod aktywacyjny</button>
+                        </form>
+
+                        <form method="post" class="form-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="akcja" value="przełącz">
+                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                            <button type="submit" class="btn btn-sm btn-ghost">
+                                <?= (int) $u['aktywny'] === 1 ? 'Zablokuj' : 'Odblokuj' ?>
+                            </button>
+                        </form>
+
+                        <details class="inline-details">
+                            <summary>Reset hasła</summary>
+                            <form method="post" class="form-stack">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="akcja" value="reset">
+                                <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                                <input type="text" name="haslo" minlength="8" placeholder="Nowe hasło" required>
+                                <button type="submit" class="btn btn-sm">Ustaw hasło</button>
+                            </form>
+                        </details>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
+}
 
 layout_header('Użytkownicy', 'uzytkownicy.php');
 ?>
@@ -365,7 +506,25 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
 </section>
 
 <section class="card">
-    <h2 class="card-title">Lista użytkowników <span class="muted">(<?= e((string) count($users)) ?>)</span></h2>
+    <h2 class="card-title">
+        Administratorzy <span class="muted">(grupa firmy, <?= e((string) count($admins)) ?>)</span>
+    </h2>
+    <p class="muted small">
+        Konta grupy firmy – logują się w zakładce „Administrator” (e-mail + hasło), opcjonalnie
+        z dodatkowym kodem („Wymaga kodu”).
+    </p>
+
+    <?php if (!$admins): ?>
+        <p class="muted small">Brak kont administratorów.</p>
+    <?php else: ?>
+        <?php render_tabela_kont($admins, $user); ?>
+    <?php endif; ?>
+</section>
+
+<section class="card">
+    <h2 class="card-title">
+        Użytkownicy <span class="muted">(grupa materiałów, <?= e((string) count($listaUsers)) ?>)</span>
+    </h2>
     <p class="muted small">
         Konta zakładają sami użytkownicy po otrzymaniu kodu rejestracyjnego.
         „Generuj i wyślij kod” wysyła na e-mail konta kod logowania: użytkownik grupy
@@ -373,125 +532,11 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
         może dodatkowo wymagać kodu przy każdym logowaniu (przycisk „Wymaga kodu”).
     </p>
 
-    <div class="table-wrap">
-        <table class="table">
-            <thead>
-            <tr>
-                <th>Imię</th>
-                <th>E-mail</th>
-                <th>Grupa</th>
-                <th>Status</th>
-                <th>Aktywny kod</th>
-                <th>Wymóg kodu</th>
-                <th>Slajdy</th>
-                <th class="th-actions">Akcje</th>
-            </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($users as $u): ?>
-                <tr>
-                    <td>
-                        <strong><?= e($u['imie']) ?></strong>
-                        <?php if ((int) $u['id'] === (int) $user['id']): ?>
-                            <span class="badge badge-you">Ty</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="mono"><?= e($u['email']) ?></td>
-                    <td>
-                        <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="grupa">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <select name="grupa" class="select-sm" onchange="this.form.submit()">
-                                <?php foreach (GROUPS as $key => $label): ?>
-                                    <option value="<?= e($key) ?>"<?= $u['grupa'] === $key ? ' selected' : '' ?>>
-                                        <?= e($label) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <noscript><button type="submit" class="btn btn-sm btn-ghost">Zapisz</button></noscript>
-                        </form>
-                    </td>
-                    <td>
-                        <?php if ((int) $u['aktywny'] === 1): ?>
-                            <span class="badge badge-ok">aktywne</span>
-                        <?php else: ?>
-                            <span class="badge badge-off">zablokowane</span>
-                        <?php endif; ?>
-                        <?php if ((int) $u['aktywowany'] !== 1): ?>
-                            <span class="badge badge-warn">nieaktywowane</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if (!empty($u['aktywny_kod'])): ?>
-                            <span class="code-inline"><?= e($u['aktywny_kod']) ?></span>
-                        <?php else: ?>
-                            <span class="muted">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if ((int) $u['wymaga_kod'] === 1): ?>
-                            <span class="badge badge-warn">wymaga kodu</span>
-                        <?php elseif ($u['grupa'] === GROUP_MATERIALY): ?>
-                            <span class="badge badge-ok">logowanie kodem</span>
-                        <?php else: ?>
-                            <span class="muted small">bez wymogu</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="muted"><?= e((string) $u['liczba_slajdow']) ?></td>
-                    <td class="td-actions">
-                        <form method="post" class="form-inline" id="formKod<?= e((string) $u['id']) ?>">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="kod">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <input type="hidden" name="cel" value="logowanie">
-                            <button type="submit" class="btn btn-sm btn-primary">
-                                Generuj i wyślij kod
-                            </button>
-                        </form>
-
-                        <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="wymaga_kod">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <button type="submit" class="btn btn-sm btn-ghost">
-                                <?= (int) $u['wymaga_kod'] === 1 ? 'Bez wymogu kodu' : 'Wymaga kodu' ?>
-                            </button>
-                        </form>
-
-                        <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="kod">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <input type="hidden" name="cel" value="aktywacja">
-                            <button type="submit" class="btn btn-sm btn-ghost">Kod aktywacyjny</button>
-                        </form>
-
-                        <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="przełącz">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <button type="submit" class="btn btn-sm btn-ghost">
-                                <?= (int) $u['aktywny'] === 1 ? 'Zablokuj' : 'Odblokuj' ?>
-                            </button>
-                        </form>
-
-                        <details class="inline-details">
-                            <summary>Reset hasła</summary>
-                            <form method="post" class="form-stack">
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="akcja" value="reset">
-                                <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                                <input type="text" name="haslo" minlength="8" placeholder="Nowe hasło" required>
-                                <button type="submit" class="btn btn-sm">Ustaw hasło</button>
-                            </form>
-                        </details>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+    <?php if (!$listaUsers): ?>
+        <p class="muted small">Brak kont użytkowników.</p>
+    <?php else: ?>
+        <?php render_tabela_kont($listaUsers, $user); ?>
+    <?php endif; ?>
 </section>
 
 <?php layout_footer(); ?>
