@@ -58,6 +58,25 @@ TestNauka/
 └── data/           # baza SQLite + uploady (ignorowane w repo)
 ```
 
+## Konto administratora bez kodu
+
+Jeśli potrzebujesz konta w grupie `firma` **bez przechodzenia przez kod weryfikacyjny**:
+
+- **Przez panel** – zaloguj się jako administrator i w sekcji `Użytkownicy` dodaj konto
+  z **hasłem startowym**. Konto powstaje aktywne, kod nie jest generowany ani wysyłany.
+- **Z linii poleceń** (np. gdy hasło admina zostało utracone) – skrypt
+  `tools/utworz_admina.php` zakłada lub resetuje konto, unieważniając przy tym
+  niewykorzystane kody, żeby logowanie nie wymagało kodu:
+
+```bash
+php tools\utworz_admina.php                                     # tryb interaktywny
+php tools\utworz_admina.php admin@firma.pl NoweHaslo123         # e-mail + hasło
+php tools\utworz_admina.php admin@firma.pl NoweHaslo123 "Jan Kowalski"
+```
+
+Skrypt przy istniejącym koncie resetuje hasło, ustawia grupę `firma` i przywraca
+status aktywny/aktywowany.
+
 ## Testy
 
 ```bash
@@ -78,4 +97,5 @@ Pomocnicze skrypty (wymagają uruchomionego serwera):
 ```bash
 php tools/kody.php      # aktywne kody w bazie
 php tools/mailpit.php   # ostatnie wiadomości w Mailpit
+php tools\utworz_admina.php   # konto administratora bez kodu
 ```
