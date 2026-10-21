@@ -282,7 +282,7 @@ function generate_and_send_invitation(string $email, string $grupa = GROUP_MATER
 
     $data   = create_invitation($email, $grupa, $byUserId);
     $subject = 'Kod rejestracyjny – ' . APP_NAME;
-    $link    = app_url('rejestracja.php');
+    $link    = app_absolute_url('rejestracja.php');
     $tresc   = 'Otrzymujesz kod rejestracyjny do panelu ' . APP_NAME . '. '
         . 'Wejdź na adres ' . $link . ', wpisz ten adres e-mail oraz kod i ustal hasło. '
         . 'Konto powstanie w grupie: ' . (GROUPS[$data['grupa']] ?? $data['grupa']) . '.';

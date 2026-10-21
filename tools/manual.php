@@ -1,6 +1,7 @@
 <?php
 // Ręczna kontrola przepływu: wysłanie kodu rejestracyjnego -> rejestracja -> logowanie.
-$base  = 'http://127.0.0.1:8099';
+// Użycie: php tools/manual.php [adres-bazowy]   (domyślnie http://127.0.0.1:8099)
+$base  = rtrim($argv[1] ?? 'http://127.0.0.1:8099', '/');
 $jar   = sys_get_temp_dir() . '/testnauka_manual_' . getmypid() . '.txt';
 $email = 'reczytnik' . date('His') . '@firma.pl';
 

@@ -147,6 +147,24 @@ function app_url(string $path = ''): string
     return app_base() . ltrim($path, '/');
 }
 
+/**
+ * Adres URL z hostem – używany w linkach w e-mailach (względny URL
+ * nie jest klikalny w klientach poczty). Gdy brak hosta (CLI),
+ * zwraca adres względny.
+ */
+function app_absolute_url(string $path = ''): string
+{
+    $host = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    $https = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || ((string) ($_SERVER['SERVER_PORT'] ?? '') === '443');
+
+    if ($host === '') {
+        return app_url($path);
+    }
+
+    return ($https ? 'https://' : 'http://') . $host . app_url($path);
+}
+
 /* ------------------------------------------------------------------ */
 /* Kody weryfikacyjne                                                  */
 /* ------------------------------------------------------------------ */
