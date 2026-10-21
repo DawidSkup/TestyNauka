@@ -34,6 +34,10 @@ $stmtKody = $pdo->prepare('SELECT COUNT(*) FROM kody WHERE uzyty_at IS NULL AND 
 $stmtKody->execute([':now' => date('Y-m-d H:i:s')]);
 $statKody = (int) $stmtKody->fetchColumn();
 
+$stmtZap = $pdo->prepare('SELECT COUNT(*) FROM zaproszenia WHERE uzyty_at IS NULL AND wygasa_at > :now');
+$stmtZap->execute([':now' => date('Y-m-d H:i:s')]);
+$statZaproszenia = (int) $stmtZap->fetchColumn();
+
 $mojKod = active_code((int) $user['id'], 'logowanie');
 
 $ostatnie = $pdo->query('SELECT * FROM log ORDER BY id DESC LIMIT 8')->fetchAll();
@@ -55,7 +59,9 @@ layout_header('Panel startowy', 'index.php');
     <div class="card stat">
         <span class="stat-label">Aktywne kody</span>
         <span class="stat-value"><?= e((string) $statKody) ?></span>
-        <span class="stat-hint">ważne <?= e((string) CODE_TTL_MINUTES) ?> min</span>
+        <span class="stat-hint">
+            ważne <?= e((string) CODE_TTL_MINUTES) ?> min · <?= e((string) $statZaproszenia) ?> zaproszeń
+        </span>
     </div>
     <div class="card stat">
         <span class="stat-label">Twoja grupa</span>

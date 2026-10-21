@@ -18,62 +18,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_require($_POST['csrf'] ?? null);
     $akcja = (string) ($_POST['akcja'] ?? '');
 
-    /* --- Dodanie użytkownika ------------------------------------------- */
-    if ($akcja === 'dodaj') {
-        $imie  = trim((string) ($_POST['imie'] ?? ''));
-        $email = strtolower(trim((string) ($_POST['email'] ?? '')));
+    /* --- Wysłanie kodu rejestracyjnego ----------------------------------- */
+    if ($akcja === 'zaproszenie') {
+        $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
         $grupa = (string) ($_POST['grupa'] ?? GROUP_MATERIALY);
-        $haslo = (string) ($_POST['haslo'] ?? '');
 
         if (!isset(GROUPS[$grupa])) {
             $grupa = GROUP_MATERIALY;
         }
 
-        if ($imie === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = 'Podaj imię oraz poprawny adres e-mail.';
-        } elseif ($haslo !== '' && strlen($haslo) < 8) {
-            $error = 'Hasło musi mieć co najmniej 8 znaków.';
-        } else {
-            $istnieje = $pdo->prepare('SELECT COUNT(*) FROM users WHERE email = :email');
-            $istnieje->execute([':email' => $email]);
+        try {
+            $wynik = generate_and_send_invitation($email, $grupa, (int) $user['id']);
 
-            if ((int) $istnieje->fetchColumn() > 0) {
-                $error = 'Konto o takim adresie e-mail już istnieje.';
-            } else {
-                $now = date('Y-m-d H:i:s');
-
-                // Bez hasła startowego konto powstaje nieaktywne – użytkownik
-                // aktywuje je kodem, który wysyłamy na jego adres e-mail.
-                $aktywowane = $haslo !== '' ? 1 : 0;
-
-                $pdo->prepare(
-                    'INSERT INTO users (imie, email, haslo_hash, grupa, aktywny, aktywowany, created_at, updated_at)
-                     VALUES (:imie, :email, :haslo, :grupa, 1, :aktyw, :now, :now)'
-                )->execute([
-                    ':imie'  => $imie,
-                    ':email' => $email,
-                    ':haslo' => $haslo !== '' ? password_hash($haslo, PASSWORD_DEFAULT) : '',
-                    ':grupa' => $grupa,
-                    ':aktyw' => $aktywowane,
-                    ':now'   => $now,
-                ]);
-
-                $newId = (int) $pdo->lastInsertId();
-                log_action('dodano_uzytkownika', $email . ' | grupa=' . $grupa, (int) $user['id']);
-
-                if ($aktywowane === 1) {
-                    flash('success', 'Dodano konto ' . $email . '. Możesz wygenerować dla niego kod.');
-                } else {
-                    $wynik = generate_and_send_code($newId, 'aktywacja');
-                    flash(
-                        $wynik['wyslany'] ? 'success' : 'warning',
-                        'Dodano konto. Kod aktywacyjny ' . $wynik['kod'] . ' wysłany na ' . $wynik['email'] . '.'
-                    );
-                }
-
-                redirect(app_url('admin/uzytkownicy.php'));
-            }
+            flash(
+                $wynik['wyslany'] ? 'success' : 'warning',
+                $wynik['wyslany']
+                    ? 'Kod rejestracyjny ' . $wynik['kod'] . ' wysłany na ' . $wynik['email']
+                        . ' (ważny do ' . fmt_date($wynik['wygasa_at']) . ').'
+                    : 'Nie udało się wysłać e-maila. Kod rejestracyjny to ' . $wynik['kod']
+                        . ' (ważny do ' . fmt_date($wynik['wygasa_at']) . ').'
+            );
+        } catch (Throwable $ex) {
+            flash('error', $ex->getMessage());
         }
+
+        redirect(app_url('admin/uzytkownicy.php'));
+    }
+
+    /* --- Ponowna wysyłka kodu rejestracyjnego ---------------------------- */
+    if ($akcja === 'zaproszenie_ponow') {
+        $zapId = (int) ($_POST['zaproszenie_id'] ?? 0);
+
+        $stmt = $pdo->prepare('SELECT * FROM zaproszenia WHERE id = :id');
+        $stmt->execute([':id' => $zapId]);
+        $zap = $stmt->fetch();
+
+        if ($zap) {
+            try {
+                $wynik = generate_and_send_invitation((string) $zap['email'], (string) $zap['grupa'], (int) $user['id']);
+
+                flash(
+                    $wynik['wyslany'] ? 'success' : 'warning',
+                    $wynik['wyslany']
+                        ? 'Nowy kod rejestracyjny ' . $wynik['kod'] . ' wysłany na ' . $wynik['email'] . '.'
+                        : 'Nie udało się wysłać e-maila. Kod to ' . $wynik['kod'] . '.'
+                );
+            } catch (Throwable $ex) {
+                flash('error', $ex->getMessage());
+            }
+        } else {
+            flash('error', 'Nie znaleziono zaproszenia.');
+        }
+
+        redirect(app_url('admin/uzytkownicy.php'));
+    }
+
+    /* --- Anulowanie zaproszenia ------------------------------------------ */
+    if ($akcja === 'zaproszenie_anuluj') {
+        $zapId = (int) ($_POST['zaproszenie_id'] ?? 0);
+
+        $stmt = $pdo->prepare('SELECT * FROM zaproszenia WHERE id = :id');
+        $stmt->execute([':id' => $zapId]);
+        $zap = $stmt->fetch();
+
+        if ($zap && $zap['uzyty_at'] === null) {
+            $pdo->prepare('UPDATE zaproszenia SET uzyty_at = :now WHERE id = :id')
+                ->execute([':now' => date('Y-m-d H:i:s'), ':id' => $zapId]);
+            log_action('anulowano_zaproszenie', (string) $zap['email'], (int) $user['id']);
+            flash('info', 'Zaproszenie dla ' . $zap['email'] . ' zostało anulowane.');
+        }
+
+        redirect(app_url('admin/uzytkownicy.php'));
     }
 
     /* --- Generuj i wyślij kod ------------------------------------------ */
@@ -179,6 +194,17 @@ $stmtUsers = $pdo->prepare(
 $stmtUsers->execute([':now' => date('Y-m-d H:i:s')]);
 $users = $stmtUsers->fetchAll();
 
+/* Zaproszenia – oczekujące na rejestrację (najnowsze na górze). */
+$stmtZap = $pdo->prepare(
+    'SELECT z.*, u.imie AS imie_zapraszajacego
+       FROM zaproszenia z
+       LEFT JOIN users u ON u.id = z.utworzony_przez
+      ORDER BY (z.uzyty_at IS NOT NULL), z.created_at DESC
+      LIMIT 50'
+);
+$stmtZap->execute();
+$zaproszenia = $stmtZap->fetchAll();
+
 layout_header('Użytkownicy', 'uzytkownicy.php');
 ?>
 
@@ -190,28 +216,24 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
 <?php endif; ?>
 
 <section class="card">
-    <h2 class="card-title">Dodaj użytkownika</h2>
+    <h2 class="card-title">Wyślij kod rejestracyjny</h2>
+    <p class="muted">
+        Administrator nie zakłada kont – wysyła kod na adres e-mail, a odbiorca sam rejestruje się
+        w panelu (e-mail + kod + hasło). Kod jest ważny <?= e((string) CODE_TTL_MINUTES) ?> minut
+        i może zostać użyty tylko raz.
+    </p>
+
     <form method="post" class="form-grid">
         <?= csrf_field() ?>
-        <input type="hidden" name="akcja" value="dodaj">
+        <input type="hidden" name="akcja" value="zaproszenie">
 
         <div>
-            <label for="imie">Imię i nazwisko</label>
-            <input type="text" id="imie" name="imie" required>
+            <label for="email">E-mail odbiorcy</label>
+            <input type="email" id="email" name="email" required
+                   placeholder="np. jan.kowalski@firma.pl">
         </div>
         <div>
-            <label for="email">E-mail</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        <div>
-            <label for="haslo">Hasło startowe <span class="muted">(opcjonalnie)</span></label>
-            <input type="text" id="haslo" name="haslo" minlength="8" value="">
-            <small class="muted">
-                min. 8 znaków · puste = konto nieaktywne, użytkownik aktywuje je kodem z e-maila
-            </small>
-        </div>
-        <div>
-            <label for="grupa">Grupa</label>
+            <label for="grupa">Grupa po rejestracji</label>
             <select id="grupa" name="grupa">
                 <?php foreach (GROUPS as $key => $label): ?>
                     <option value="<?= e($key) ?>"><?= e($label) ?></option>
@@ -219,13 +241,95 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
             </select>
         </div>
         <div class="form-grid-actions">
-            <button type="submit" class="btn btn-primary">Dodaj użytkownika</button>
+            <button type="submit" class="btn btn-primary">Generuj kod i wyślij</button>
         </div>
     </form>
 </section>
 
 <section class="card">
+    <h2 class="card-title">
+        Zaproszenia <span class="muted">(<?= e((string) count($zaproszenia)) ?>)</span>
+    </h2>
+
+    <?php if (!$zaproszenia): ?>
+        <p class="muted small">Brak zaproszeń.</p>
+    <?php else: ?>
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>E-mail</th>
+                    <th>Grupa</th>
+                    <th>Kod</th>
+                    <th>Ważność</th>
+                    <th>Status</th>
+                    <th class="th-actions">Akcje</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($zaproszenia as $z): ?>
+                    <?php
+                    $wygaslo = strtotime((string) $z['wygasa_at']) <= time();
+                    $uzyte   = $z['uzyty_at'] !== null;
+                    ?>
+                    <tr>
+                        <td class="mono"><?= e($z['email']) ?></td>
+                        <td><?= e(GROUPS[$z['grupa']] ?? $z['grupa']) ?></td>
+                        <td>
+                            <?php if (!$uzyte && !$wygaslo): ?>
+                                <span class="code-inline"><?= e($z['kod']) ?></span>
+                            <?php else: ?>
+                                <span class="muted">—</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="muted">
+                            <?= e(fmt_date($z['wygasa_at'])) ?>
+                            <?php if (!$uzyte && !$wygaslo): ?>
+                                <span class="muted small">(<?= e(fmt_remaining($z['wygasa_at'])) ?>)</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($uzyte): ?>
+                                <span class="badge badge-off">wykorzystane</span>
+                            <?php elseif ($wygaslo): ?>
+                                <span class="badge badge-warn">wygasłe</span>
+                            <?php else: ?>
+                                <span class="badge badge-ok">oczekuje</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="td-actions">
+                            <?php if (!$uzyte): ?>
+                                <form method="post" class="form-inline">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="akcja" value="zaproszenie_ponow">
+                                    <input type="hidden" name="zaproszenie_id" value="<?= e((string) $z['id']) ?>">
+                                    <button type="submit" class="btn btn-sm btn-ghost">Wyślij ponownie</button>
+                                </form>
+
+                                <form method="post" class="form-inline">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="akcja" value="zaproszenie_anuluj">
+                                    <input type="hidden" name="zaproszenie_id" value="<?= e((string) $z['id']) ?>">
+                                    <button type="submit" class="btn btn-sm btn-ghost">Anuluj</button>
+                                </form>
+                            <?php else: ?>
+                                <span class="muted small">—</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</section>
+
+<section class="card">
     <h2 class="card-title">Lista użytkowników <span class="muted">(<?= e((string) count($users)) ?>)</span></h2>
+    <p class="muted small">
+        Konta zakładają sami użytkownicy po otrzymaniu kodu rejestracyjnego.
+        „Generuj i wyślij kod” wysyła dodatkowy kod logowania (2FA) na e-mail konta.
+    </p>
 
     <div class="table-wrap">
         <table class="table">

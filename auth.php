@@ -215,3 +215,177 @@ function generate_and_send_code(int $userId, string $cel = 'logowanie'): array
         'cel'       => $cel,
     ];
 }
+
+/* ------------------------------------------------------------------ */
+/* Zaproszenia – administrator wysyła kod, konto zakłada odbiorca      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Tworzy zaproszenie (6-znakowy kod) dla podanego e-maila.
+ * Poprzednie niewykorzystane zaproszenia dla tego adresu są unieważniane.
+ */
+function create_invitation(string $email, string $grupa = GROUP_MATERIALY, ?int $byUserId = null): array
+{
+    $pdo = db();
+    $email = mb_strtolower(trim($email));
+
+    if (!isset(GROUPS[$grupa])) {
+        $grupa = GROUP_MATERIALY;
+    }
+
+    $pdo->prepare('UPDATE zaproszenia SET uzyty_at = :now WHERE email = :e AND uzyty_at IS NULL')
+        ->execute([':now' => date('Y-m-d H:i:s'), ':e' => $email]);
+
+    $kod    = generate_code();
+    $wygasa = date('Y-m-d H:i:s', time() + CODE_TTL_MINUTES * 60);
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO zaproszenia (email, grupa, kod, wygasa_at, utworzony_przez, created_at)
+         VALUES (:e, :g, :k, :w, :u, :n)'
+    );
+    $stmt->execute([
+        ':e' => $email,
+        ':g' => $grupa,
+        ':k' => $kod,
+        ':w' => $wygasa,
+        ':u' => $byUserId,
+        ':n' => date('Y-m-d H:i:s'),
+    ]);
+
+    return [
+        'id'        => (int) $pdo->lastInsertId(),
+        'kod'       => $kod,
+        'wygasa_at' => $wygasa,
+        'email'     => $email,
+        'grupa'     => $grupa,
+    ];
+}
+
+/**
+ * Generuje kod rejestracyjny i wysyła go e-mailem.
+ * Konto zakłada dopiero odbiorca kodu (rejestracja.php).
+ */
+function generate_and_send_invitation(string $email, string $grupa = GROUP_MATERIALY, ?int $byUserId = null): array
+{
+    $email = mb_strtolower(trim($email));
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new RuntimeException('Podaj poprawny adres e-mail.');
+    }
+
+    $stmt = db()->prepare('SELECT id FROM users WHERE email = :e');
+    $stmt->execute([':e' => $email]);
+
+    if ($stmt->fetch()) {
+        throw new RuntimeException('Konto o takim adresie e-mail już istnieje.');
+    }
+
+    $data   = create_invitation($email, $grupa, $byUserId);
+    $subject = 'Kod rejestracyjny – ' . APP_NAME;
+    $link    = app_url('rejestracja.php');
+    $tresc   = 'Otrzymujesz kod rejestracyjny do panelu ' . APP_NAME . '. '
+        . 'Wejdź na adres ' . $link . ', wpisz ten adres e-mail oraz kod i ustal hasło. '
+        . 'Konto powstanie w grupie: ' . (GROUPS[$data['grupa']] ?? $data['grupa']) . '.';
+
+    $wyslany = send_email(
+        $email,
+        $subject,
+        email_template($subject, $tresc, $data['kod'], $link, 'Załóż konto')
+    );
+
+    log_action(
+        'wyslano_zaproszenie',
+        $email . ' | grupa=' . $data['grupa'] . ' | wyslany=' . ($wyslany ? 'tak' : 'nie'),
+        $byUserId
+    );
+
+    return $data + ['wyslany' => $wyslany];
+}
+
+/**
+ * Znajduje aktywne zaproszenie dla pary e-mail + kod.
+ */
+function find_invitation(string $email, string $kod): ?array
+{
+    $stmt = db()->prepare(
+        'SELECT * FROM zaproszenia
+          WHERE email = :e AND kod = :k AND uzyty_at IS NULL AND wygasa_at > :now
+          ORDER BY id DESC LIMIT 1'
+    );
+    $stmt->execute([
+        ':e'   => mb_strtolower(trim($email)),
+        ':k'   => strtoupper(trim($kod)),
+        ':now' => date('Y-m-d H:i:s'),
+    ]);
+
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Oznacza zaproszenie jako wykorzystane. Zwraca true, gdy zaproszenie
+ * zostało faktycznie oznaczone (brak wyścigu między żądaniami).
+ */
+function consume_invitation(int $invitationId): bool
+{
+    $stmt = db()->prepare('UPDATE zaproszenia SET uzyty_at = :now WHERE id = :id AND uzyty_at IS NULL');
+    $stmt->execute([':now' => date('Y-m-d H:i:s'), ':id' => $invitationId]);
+
+    return $stmt->rowCount() === 1;
+}
+
+/**
+ * Zakłada konto na podstawie zaproszenia (e-mail + kod).
+ * Zwraca id nowego użytkownika albo rzuca RuntimeException z komunikatem dla użytkownika.
+ */
+function register_from_invitation(string $email, string $kod, string $imie, string $haslo): int
+{
+    $pdo = db();
+    $email = mb_strtolower(trim($email));
+
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :e');
+    $stmt->execute([':e' => $email]);
+
+    if ($stmt->fetch()) {
+        throw new RuntimeException('Konto o takim adresie e-mail już istnieje.');
+    }
+
+    $zap = find_invitation($email, $kod);
+
+    if (!$zap) {
+        throw new RuntimeException('Kod jest nieprawidłowy, wygasł albo został już wykorzystany.');
+    }
+
+    $grupa = isset(GROUPS[$zap['grupa']]) ? (string) $zap['grupa'] : GROUP_MATERIALY;
+    $now   = date('Y-m-d H:i:s');
+
+    $pdo->beginTransaction();
+
+    try {
+        if (!consume_invitation((int) $zap['id'])) {
+            throw new RuntimeException('Kod jest nieprawidłowy, wygasł albo został już wykorzystany.');
+        }
+
+        $pdo->prepare(
+            'INSERT INTO users (imie, email, haslo_hash, grupa, aktywny, aktywowany, created_at, updated_at)
+             VALUES (:imie, :email, :haslo, :grupa, 1, 1, :now, :now)'
+        )->execute([
+            ':imie'  => $imie,
+            ':email' => $email,
+            ':haslo' => password_hash($haslo, PASSWORD_DEFAULT),
+            ':grupa' => $grupa,
+            ':now'   => $now,
+        ]);
+
+        $newId = (int) $pdo->lastInsertId();
+        $pdo->commit();
+    } catch (Throwable $ex) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $ex;
+    }
+
+    log_action('rejestracja_konta', $email . ' | grupa=' . $grupa, $newId);
+
+    return $newId;
+}

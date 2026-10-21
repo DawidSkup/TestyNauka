@@ -275,7 +275,8 @@ if (is_array($mp) && !empty($mp['messages'])) {
 }
 
 /* ------------------------------------------------------------------ */
-/* 7. Panel firmy: dodanie uzytkownika, aktywacja, operacje na slajdach */
+/* 7. Panel firmy: kod rejestracyjny -> samodzielna rejestracja,       */
+/*    operacje na slajdach                                              */
 /* ------------------------------------------------------------------ */
 @unlink($jar);
 $r = req('GET', $base . '/login.php');
@@ -283,52 +284,79 @@ $token = csrf($r['html']);
 $r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'admin@firma.pl', 'haslo' => 'Admin123!'], null, false);
 
 $r = req('GET', $base . '/admin/uzytkownicy.php');
+check('Panel: formularz kodu rejestracyjnego', str_contains($r['html'], 'Wyślij kod rejestracyjny'));
+check('Panel: brak tworzenia konta przez admina', !str_contains($r['html'], 'Dodaj użytkownika'));
+
 $token = csrf($r['html']);
 $r = req('POST', $base . '/admin/uzytkownicy.php', [
     'csrf'  => $token,
-    'akcja' => 'dodaj',
-    'imie'  => 'Nowy Pracownik',
+    'akcja' => 'zaproszenie',
     'email' => 'nowy.pracownik@firma.pl',
-    'haslo' => '',
     'grupa' => 'materialy',
 ]);
-check('Dodanie uzytkownika przez panel', str_contains($r['html'], 'Dodano konto'));
+check('Wyslanie kodu rejestracyjnego', str_contains($r['html'], 'Kod rejestracyjny'));
+check('Zaproszenie widoczne na liscie', str_contains($r['html'], 'oczekuje'));
 
-$r = req('GET', $base . '/admin/uzytkownicy.php');
-check('Nowy uzytkownik na liscie', str_contains($r['html'], 'nowy.pracownik@firma.pl'));
-check('Nowy uzytkownik w grupie materialow', str_contains($r['html'], 'Grupa materiałów (slajdy)'));
-
-$nowy = db_read("SELECT id, aktywowany FROM users WHERE email = 'nowy.pracownik@firma.pl'")[0] ?? [];
-$newId = (int) ($nowy['id'] ?? 0);
-check('Nowy uzytkownik zapisany w bazie', $newId > 0, "(id=$newId)");
-check('Nowy uzytkownik czeka na aktywacje', (int) ($nowy['aktywowany'] ?? 1) === 0);
-
-$kodAktyw = (string) db_scalar(
-    "SELECT kod FROM kody WHERE user_id = $newId AND cel = 'aktywacja' AND uzyty_at IS NULL ORDER BY id DESC LIMIT 1"
+$kodRej = (string) db_scalar(
+    "SELECT kod FROM zaproszenia WHERE email = 'nowy.pracownik@firma.pl' AND uzyty_at IS NULL ORDER BY id DESC LIMIT 1"
 );
-check('Kod aktywacyjny wygenerowany', $kodAktyw !== '', "($kodAktyw)");
+check('Kod rejestracyjny zapisany w bazie', (bool) preg_match('/^[A-Z0-9]{6}$/', $kodRej), "($kodRej)");
+check(
+    'Administrator nie utworzyl konta uzytkownika',
+    (int) db_scalar("SELECT COUNT(*) FROM users WHERE email = 'nowy.pracownik@firma.pl'") === 0
+);
 
-/* Uzytkownik aktywuje konto kodem */
+/* Odbiorca kodu rejestruje sie samodzielnie */
 @unlink($jar);
-$r = req('GET', $base . '/aktywacja.php');
+$r = req('GET', $base . '/rejestracja.php');
 $token = csrf($r['html']);
-$r = req('POST', $base . '/aktywacja.php', [
-    'csrf'  => $token,
-    'email' => 'nowy.pracownik@firma.pl',
-    'kod'   => $kodAktyw,
-    'haslo' => 'NoweHaslo123',
+check('Strona rejestracji dostepna', $r['status'] === 200 && str_contains($r['html'], 'Załóż konto'));
+
+$r = req('POST', $base . '/rejestracja.php', [
+    'csrf'   => $token,
+    'email'  => 'nowy.pracownik@firma.pl',
+    'kod'    => 'ZLYKOD',
+    'imie'   => 'Nowy Pracownik',
+    'haslo'  => 'NoweHaslo123',
     'haslo2' => 'NoweHaslo123',
 ]);
-check('Aktywacja konta kodem', str_contains($r['html'], 'Konto aktywowane'));
+check('Rejestracja - bledny kod odrzucony', str_contains($r['html'], 'Kod jest nieprawidłowy'));
 
-$aktyw = db_read('SELECT aktywowany, haslo_hash FROM users WHERE id = ' . $newId)[0] ?? [];
-check('Konto oznaczone jako aktywowane', (int) ($aktyw['aktywowany'] ?? 0) === 1);
+$r = req('GET', $base . '/rejestracja.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/rejestracja.php', [
+    'csrf'   => $token,
+    'email'  => 'nowy.pracownik@firma.pl',
+    'kod'    => $kodRej,
+    'imie'   => 'Nowy Pracownik',
+    'haslo'  => 'NoweHaslo123',
+    'haslo2' => 'NoweHaslo123',
+]);
+check('Rejestracja kodem rejestracyjnym', str_contains($r['html'], 'Konto utworzone'));
+
+$nowy = db_read(
+    "SELECT id, grupa, aktywny, aktywowany, haslo_hash FROM users WHERE email = 'nowy.pracownik@firma.pl'"
+)[0] ?? [];
+$newId = (int) ($nowy['id'] ?? 0);
+check('Konto utworzone przez uzytkownika', $newId > 0, "(id=$newId)");
+check('Konto w grupie materialow', (string) ($nowy['grupa'] ?? '') === 'materialy');
+check(
+    'Konto aktywne i aktywowane',
+    (int) ($nowy['aktywny'] ?? 0) === 1 && (int) ($nowy['aktywowany'] ?? 0) === 1
+);
 check(
     'Nowe haslo zapisane w formie hashu',
-    !empty($aktyw['haslo_hash']) && password_verify('NoweHaslo123', (string) $aktyw['haslo_hash'])
+    !empty($nowy['haslo_hash']) && password_verify('NoweHaslo123', (string) $nowy['haslo_hash'])
+);
+check(
+    'Zaproszenie oznaczone jako wykorzystane',
+    (int) db_scalar(
+        "SELECT COUNT(*) FROM zaproszenia WHERE email = 'nowy.pracownik@firma.pl' AND uzyty_at IS NOT NULL"
+    ) === 1
 );
 
 /* Logowanie nowego uzytkownika (bez 2FA – brak aktywnego kodu logowania) */
+@unlink($jar);
 $r = req('GET', $base . '/login.php');
 $token = csrf($r['html']);
 $r = req('POST', $base . '/login.php', [

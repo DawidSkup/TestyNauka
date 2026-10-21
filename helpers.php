@@ -213,9 +213,15 @@ function send_email(string $to, string $subject, string $html): bool
 
 /**
  * Buduje prosty szablon e-maila (HTML) z kodem wyróżnionym.
+ * Opcjonalny $link dodaje przycisk z odnośnikiem (np. do rejestracji konta).
  */
-function email_template(string $heading, string $paragraph, string $code = ''): string
-{
+function email_template(
+    string $heading,
+    string $paragraph,
+    string $code = '',
+    ?string $link = null,
+    string $linkText = 'Przejdź do panelu'
+): string {
     $codeBlock = '';
     if ($code !== '') {
         $codeBlock = '<p style="margin:24px 0;text-align:center;">'
@@ -226,6 +232,15 @@ function email_template(string $heading, string $paragraph, string $code = ''): 
             . 'Kod jest ważny ' . CODE_TTL_MINUTES . ' minut i może zostać użyty tylko raz.</p>';
     }
 
+    $linkBlock = '';
+    if ($link !== null && $link !== '') {
+        $linkBlock = '<p style="margin:20px 0 0;text-align:center;">'
+            . '<a href="' . e($link) . '" style="display:inline-block;padding:12px 24px;background:#2563eb;'
+            . 'color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;">' . e($linkText) . '</a></p>'
+            . '<p style="margin:10px 0 0;text-align:center;color:#64748b;font-size:12px;word-break:break-all;">'
+            . e($link) . '</p>';
+    }
+
     return '<!doctype html><html lang="pl"><head><meta charset="utf-8"></head>'
         . '<body style="margin:0;padding:24px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">'
         . '<div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:14px;padding:32px;'
@@ -233,6 +248,7 @@ function email_template(string $heading, string $paragraph, string $code = ''): 
         . '<h1 style="margin:0 0 12px;font-size:22px;">' . e($heading) . '</h1>'
         . '<p style="margin:0;font-size:15px;line-height:1.6;color:#334155;">' . e($paragraph) . '</p>'
         . $codeBlock
+        . $linkBlock
         . '<p style="margin:28px 0 0;font-size:12px;color:#94a3b8;">' . e(MAIL_FROM_NAME) . '</p>'
         . '</div></body></html>';
 }

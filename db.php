@@ -67,6 +67,23 @@ function db_migrate(PDO $pdo): void
 
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_kody_user ON kody(user_id, cel)');
 
+    // Zaproszenia: administrator wysyła kod na e-mail, a odbiorca zakłada konto sam.
+    $pdo->exec(<<<'SQL'
+        CREATE TABLE IF NOT EXISTS zaproszenia (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            email         TEXT    NOT NULL,
+            grupa         TEXT    NOT NULL DEFAULT 'materialy',
+            kod           TEXT    NOT NULL,
+            wygasa_at     TEXT    NOT NULL,
+            uzyty_at      TEXT,
+            utworzony_przez INTEGER,
+            created_at    TEXT    NOT NULL,
+            FOREIGN KEY (utworzony_przez) REFERENCES users(id) ON DELETE SET NULL
+        )
+    SQL);
+
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_zaproszenia_email ON zaproszenia(email, uzyty_at)');
+
     $pdo->exec(<<<'SQL'
         CREATE TABLE IF NOT EXISTS slajdy (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,

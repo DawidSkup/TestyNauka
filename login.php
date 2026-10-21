@@ -99,8 +99,10 @@ $flashes = flash_take();
     </form>
 
     <p class="login-foot muted">
-        Nie masz aktywnego konta? Poproś administratora grupy firmy o wygenerowanie kodu.
+        Nie masz konta? Poproś administratora grupy firmy o kod rejestracyjny
+        (wysyłany jest na Twój adres e-mail).
     </p>
+    <p class="login-foot"><a href="<?= e(app_url('rejestracja.php')) ?>">Załóż konto kodem rejestracyjnym</a></p>
     <p class="login-foot"><a href="<?= e(app_url('aktywacja.php')) ?>">Aktywuj konto kodem</a></p>
 </div>
 </body>

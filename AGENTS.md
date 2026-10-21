@@ -23,14 +23,36 @@ sesja z regeneracją ID; wylogowanie kasuje sesję.
 
 - **Zakres sekcji w panelu:**
 
-  - **Grupa firmy** – `Użytkownicy`: lista kont, dodawanie nowych, przypisanie grupy,
-    blokada konta, reset hasła, **przycisk „Generuj i wyślij kod”** (wysyłka kodu na e-mail
-    użytkownika). Nowe konto bez hasła startowego powstaje nieaktywne – użytkownik aktywuje
-    je kodem aktywacyjnym i sam ustawia hasło.
+  - **Grupa firmy** – `Użytkownicy`: **wysyłka kodu rejestracyjnego** (administrator nie zakłada
+    kont – podaje tylko e-mail i grupę), lista zaproszeń (status, wygaśnięcie, ponowna wysyłka,
+    anulowanie), lista istniejących kont, przypisanie grupy, blokada konta, reset hasła oraz
+    **przycisk „Generuj i wyślij kod”** (kod logowania 2FA na e-mail użytkownika).
   - **Grupa materiałów** – `Materiały`: dodawanie, edycja, układanie, publikowanie
     i podgląd slajdów. Użytkownik tej grupy **nie ma dostępu** do sekcji `Użytkownicy`.
-- **Panel startowy** – statystyki (liczba użytkowników, slajdów, aktywnych kodów) oraz
-  skróty do sekcji właściwych dla zalogowanej grupy.
+- **Panel startowy** – statystyki (liczba użytkowników, slajdów, aktywnych kodów i oczekujących
+  zaproszeń) oraz skróty do sekcji właściwych dla zalogowanej grupy.
+
+## 2a. Zakładanie kont przez kod rejestracyjny
+
+Administrator **nie tworzy kont użytkowników** – wysyła jedynie kod na adres e-mail,
+a odbiorca zakłada konto samodzielnie:
+
+1. Administrator w sekcji `Użytkownicy` wpisuje **e-mail odbiorcy** i wybiera **grupę**
+   (`firma` / `materialy`), po czym naciska **„Generuj kod i wyślij”**.
+2. Na wskazany adres leci e-mail z **6-znakowym kodem rejestracyjnym** oraz linkiem do
+   strony `rejestracja.php`. Kod jest ważny 15 minut i jednorazowy.
+3. Odbiorca wchodzi na `rejestracja.php` i podaje: e-mail, kod, imię i nazwisko oraz hasło
+   (z potwierdzeniem).
+4. Konto powstaje **aktywne i aktywowane**, w grupie wskazanej w zaproszeniu, a użytkownik
+   zostaje zalogowany.
+
+Dodatkowe reguły:
+
+- istniejące zaproszenia dla tego samego e-maila są unieważniane przy wysłaniu nowego kodu,
+- zaproszenie dla adresu, który ma już konto, jest odrzucane z czytelnym komunikatem,
+- konsumpcja kodu i utworzenie konta odbywają się w jednej transakcji (brak wyścigu),
+- 5 błędnych prób rejestracji blokuje sesję na 10 minut (throttling),
+- administrator może zaproszenie anulować albo wysłać ponownie (generuje się nowy kod).
 
 ## 3. Materiały – wyłącznie slajdy
 
@@ -51,13 +73,15 @@ Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na kla
 
 - **Przycisk „Generuj i wyślij kod”** w sekcji `Użytkownicy` (dla wybranego konta)
   oraz w panelu startowym (wysyłka kodu na własny adres e-mail).
+- **Przycisk „Generuj kod i wyślij”** w sekcji `Użytkownicy` dla **nowego** e-maila –
+  wysyła kod rejestracyjny (cel `rejestracja`) pozwalający odbiorcy założyć konto.
 - **Format kodu:** 6 znaków – **wielkie litery (A–Z) oraz cyfry (0–9)**, losowo generowany
   (alfabet bez znaków mylących `I`, `O`, `0`, `1`, np. `K7M2QX`); kod zawsze zawiera
   co najmniej jedną cyfrę i jedną wielką literę.
 - **Ważność kodu:** 15 minut; poprzedni niewykorzystany kod danego celu jest unieważniany
   przy generowaniu nowego.
-- **Cele kodu:** `logowanie` (dodatkowe potwierdzenie przy logowaniu) oraz `aktywacja`
-  (aktywacja konta przez użytkownika po rejestracji w grupie firmy).
+- **Cele kodu:** `logowanie` (dodatkowe potwierdzenie przy logowaniu), `aktywacja`
+  (reset hasła przez istniejące konto) oraz `rejestracja` (kod zaproszenia w tabeli `zaproszenia`).
 - **Wysyłka:** e-mail HTML z tematem i treścią w UTF-8; informacja o błędzie wysyłki
   zapisywana w tabeli `log`. Kod jest jednorazowy – po poprawnym użyciu oznaczany jako zużyty.
 - **Bezpieczeństwo:** kody weryfikacyjne przechowywane są w bazie, wysyłka nie ujawnia kodu
@@ -69,11 +93,13 @@ Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na kla
 |---------|-----------------------------------------------------------------------------------------------|
 | `users` | `id`, `imie`, `email` (UNIQUE), `haslo_hash`, `grupa`, `aktywny`, `aktywowany`, `created_at`, `updated_at` |
 | `kody`  | `id`, `user_id` → `users`, `kod`, `cel`, `wygasa_at`, `uzyty_at`, `wyslany_at`, `created_at`        |
+| `zaproszenia` | `id`, `email`, `grupa`, `kod`, `wygasa_at`, `uzyty_at`, `utworzony_przez` → `users`, `created_at` |
 | `slajdy`| `id`, `tytul`, `tresc`, `obraz`, `uklad`, `przycisk`, `link`, `status`, `kolejnosc`, `autor_id` → `users`, `created_at`, `updated_at` |
 | `log`   | `id`, `user_id`, `akcja`, `szczegoly`, `created_at`                                            |
 
 - Hasła: `password_hash()` / `password_verify()` (`PASSWORD_DEFAULT`).
-- Kaskady: `kody.user_id` → `users` (`ON DELETE CASCADE`), `slajdy.autor_id` → `users` (`SET NULL`).
+- Kaskady: `kody.user_id` → `users` (`ON DELETE CASCADE`), `slajdy.autor_id` → `users` (`SET NULL`),
+  `zaproszenia.utworzony_przez` → `users` (`SET NULL`).
 
 ## 6. Struktura plików
 
@@ -88,11 +114,12 @@ TestNauka/
 ├── login.php            # formularz logowania
 ├── logout.php
 ├── weryfikacja.php      # weryfikacja kodu po zalogowaniu
-├── aktywacja.php        # aktywacja konta kodem
+├── aktywacja.php        # aktywacja konta kodem (istniejące konto)
+├── rejestracja.php      # rejestracja kodem rejestracyjnym (zakładanie własnego konta)
 ├── admin/
 │   ├── _layout.php       # wspólny nagłówek/stopka panelu (menu wg grupy)
 │   ├── index.php        # panel startowy (statystyki)
-│   ├── uzytkownicy.php  # grupa firmy: użytkownicy + generowanie kodów
+│   ├── uzytkownicy.php  # grupa firmy: wysyłka kodów rejestracyjnych + konta
 │   ├── materialy.php    # grupa materiałów: lista i zarządzanie slajdami
 │   ├── slajd_form.php   # dodawanie / edycja slajdu
 │   └── podglad.php      # prezentacja slajdów
@@ -102,9 +129,12 @@ TestNauka/
 │   ├── style.css
 │   └── app.js
 ├── tools/               # skrypty pomocnicze i testy integracyjne
-│   ├── testy.php        # 45 testów HTTP + baza (php tools/testy.php)
-│   ├── kody.php         # podgląd aktywnych kodów w bazie
-│   └── mailpit.php      # podgląd wiadomości w Mailpit
+│   ├── testy.php        # 50 testów HTTP + baza (php tools/testy.php)
+│   ├── kody.php         # podgląd aktywnych kodów i zaproszeń w bazie
+│   ├── stan.php         # podgląd stanu bazy (konta, zaproszenia, slajdy)
+│   ├── manual.php       # ręczna kontrola przepływu kod -> rejestracja -> logowanie
+│   ├── mailpit.php      # podgląd wiadomości w Mailpit
+│   └── utworz_admina.php # konto administratora bez kodu (CLI)
 └── data/                # baza SQLite + pliki uploadowane (poza repo)
 ```
 
@@ -117,7 +147,9 @@ TestNauka/
 5. Upload: biała lista typów MIME, limit rozmiaru, losowa nazwa pliku, brak wykonywania.
 6. Zapytania SQL wyłącznie z parametrami wiązanymi (PDO prepared statements).
 7. Brak ujawniania haseł i kodów w logach aplikacji.
-8. Throttling logowania: 5 błędnych próbl blokuje sesję na 10 minut.
+8. Throttling logowania: 5 błędnych próbl blokuje sesję na 10 minut (analogicznie rejestracja).
+9. Kod rejestracyjny jest jednorazowy i powiązany z konkretnym adresem e-mail – nie pozwala
+   założyć konta dla innego adresu niż ten, na który został wysłany.
 
 ## 8. Uruchomienie
 
@@ -142,6 +174,11 @@ TestNauka/
 - [x] Kod wygasa po 15 minutach i działa tylko raz.
 - [x] Materiały dodaje się wyłącznie jako slajdy – brak uploadu dokumentów.
 - [x] Slajd da się edytować, opublikować, przesunąć i obejrzeć w podglądzie.
+- [x] Administrator **nie zakłada kont** – sekcja `Użytkownicy` wysyła jedynie kod rejestracyjny
+      na e-mail (bez tworzenia rekordu w tabeli `users`).
+- [x] Odbiorca kodu zakłada konto samodzielnie w `rejestracja.php` (e-mail + kod + hasło),
+      a konto od razu działa w grupie wskazanej w zaproszeniu.
+- [x] Kod rejestracyjny jest jednorazowy, wygasa po 15 minutach i nie działa dla innego e-maila.
 
 Status realizacji: **wszystkie kryteria spełnione** — potwierdzone testem integracyjnym
-`php tools/testy.php` (45/45 testów zielonych).
+`php tools/testy.php` (50/50 testów zielonych).

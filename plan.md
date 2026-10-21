@@ -3,7 +3,7 @@
 > Dokument roboczy. Statusy aktualizowane na bieżąco.
 > Legenda: `[x]` zrobione · `[ ]` do zrobienia · `[~]` w trakcie · `[!]` problem/ryzyko
 
-**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona (45/45 testów zielonych)**
+**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona (50/50 testów zielonych)**
 
 ---
 
@@ -20,7 +20,7 @@
 
 - [x] `config.php` – stałe: ścieżka bazy, katalog uploadów, limit i dozwolone typy obrazów, długość kodu, TTL kodu, dane nadawcy e-mail, nazwa sesji, definicja grup
 - [x] `db.php` – połączenie PDO (tryb wyjątków, `PRAGMA foreign_keys`, WAL)
-- [x] `db.php` – migracja: tworzenie tabel `users`, `kody`, `slajdy`, `log`
+- [x] `db.php` – migracja: tworzenie tabel `users`, `kody`, `zaproszenia`, `slajdy`, `log`
 - [x] `db.php` – dane startowe (konto administratora + konto grupy materiałów)
 - [x] `helpers.php` – `e()` (escape HTML), `fmt_date()`, `fmt_remaining()`
 - [x] `helpers.php` – sesja, token CSRF (`csrf_token()`, `csrf_field()`, `csrf_valid()`, `csrf_require()`)
@@ -37,6 +37,8 @@
 - [x] `auth.php` – `create_code()` (unieważnia poprzedni kod, zapisuje wygaśnięcie)
 - [x] `auth.php` – `active_code()`, `consume_code()` (jednorazowość kodu)
 - [x] `auth.php` – `generate_and_send_code()` – generuje kod i wysyła e-mail
+- [x] `auth.php` – zaproszenia: `create_invitation()`, `generate_and_send_invitation()`,
+      `find_invitation()`, `consume_invitation()`, `register_from_invitation()` (transakcja)
 - [x] `index.php` – przekierowanie do panelu lub logowania
 
 ## Faza 3 – Logowanie i weryfikacja kodem ✅
@@ -45,7 +47,8 @@
 - [x] `logout.php` – zakończenie sesji
 - [x] `weryfikacja.php` – weryfikacja kodu po poprawnym haśle (cel `logowanie`)
 - [x] `aktywacja.php` – aktywacja konta kodem (cel `aktywacja`) + ustawienie hasła
-- [x] Blokada po 5 błędnych próbach logowania (throttling na 10 minut)
+- [x] `rejestracja.php` – rejestracja kodem rejestracyjnym (e-mail + kod + imię + hasło)
+- [x] Blokada po 5 błędnych próbach logowania (throttling na 10 minut) i rejestracji
 
 ## Faza 4 – Szkielet panelu ✅
 
@@ -57,7 +60,10 @@
 ## Faza 5 – Użytkownicy (tylko grupa `firma`) ✅
 
 - [x] `admin/uzytkownicy.php` – lista użytkowników: imię, e-mail, grupa, status, ostatni kod, liczba slajdów
-- [x] `admin/uzytkownicy.php` – dodanie użytkownika (e-mail, imię, grupa, hasło startowe opcjonalne)
+- [x] `admin/uzytkownicy.php` – **wysyłka kodu rejestracyjnego** (e-mail + grupa) – administrator
+      nie zakłada kont, odbiorca rejestruje się samodzielnie
+- [x] `admin/uzytkownicy.php` – lista zaproszeń: status (oczekuje / wygasłe / wykorzystane),
+      ponowna wysyłka kodu, anulowanie zaproszenia
 - [x] `admin/uzytkownicy.php` – zmiana grupy (select z autosave), blokada/wyłączenie konta
 - [x] `admin/uzytkownicy.php` – reset hasła przez administratora
 - [x] `admin/uzytkownicy.php` – **przycisk „Generuj i wyślij kod”** per użytkownik
@@ -98,7 +104,7 @@
 
 ## Faza 9 – Testy i weryfikacja ✅
 
-- [x] `tools/testy.php` – 45 testów integracyjnych na HTTP + bazę
+- [x] `tools/testy.php` – 50 testów integracyjnych na HTTP + bazę
 - [x] Uruchomienie serwera PHP i sprawdzenie braku błędów w logu
 - [x] Test logowania dla obu grup (`admin@firma.pl`, `marketing@firma.pl`)
 - [x] Test blokady: grupa `materialy` nie wchodzi do `admin/uzytkownicy.php` → 403
@@ -109,6 +115,8 @@
 - [x] Test walidacji uploadu (zły typ pliku, za duży plik)
 - [x] Test CSRF: formularz i API bez tokenu są odrzucane
 - [x] Test aktywacji konta kodem + reset hasła
+- [x] Test przepływu „kod rejestracyjny → rejestracja → logowanie” (w tym: administrator
+      nie tworzy konta, błędny kod odrzucony, konto aktywne od razu, jednorazowość kodu)
 - [x] Test throttlingu logowania
 - [x] Testy powtarzalne (reset bazy na początku przebiegu)
 
@@ -133,10 +141,10 @@
 | 6. Materiały (slajdy) | ✅ zrobione | tylko slajdy, upload, kolejność, podgląd |
 | 7. API i JavaScript | ✅ zrobione | `api/kod.php`, `assets/app.js` |
 | 8. Warstwa wizualna | ✅ zrobione | `assets/style.css` |
-| 9. Testy | ✅ zrobione | 45/45 zielonych (`php tools/testy.php`) |
+| 9. Testy | ✅ zrobione | 50/50 zielonych (`php tools/testy.php`) |
 | 10. Dokumentacja | ✅ zrobione | `README.md`, `AGENTS.md`, `plan.md` |
 
-**Wykonano:** 96 / 96 zadań
+**Wykonano:** 99 / 99 zadań
 
 ## Znalezione i naprawione błędy
 
@@ -151,3 +159,6 @@
    i 1 wielką literę.
 5. **Strefa czasowa** – PHP pracował w UTC, ustawiono `Europe/Warsaw`.
 6. **Nieaktualny snapshot WAL** w testach po zapisie – testy czytają bazę świeżym połączeniem.
+7. **Administrator tworzył konta za użytkowników** – zmieniono model: administrator wysyła
+   kod rejestracyjny na e-mail, a konto zakłada odbiorca kodu (`rejestracja.php`); w bazie
+   pojawiła się tabela `zaproszenia`, a tworzenie kont z panelu zostało usunięte.
