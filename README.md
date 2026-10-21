@@ -29,6 +29,7 @@ i kodami) oraz **grupę materiałów** (dodawanie i edycja slajdów).
 |---------|-------|-------|
 | `admin@firma.pl` | `Admin123!` | `firma` |
 | `marketing@firma.pl` | `Marketing123!` | `materialy` |
+| `pracownik@firma.pl` | `Pracownik123!` | `materialy` (wymaga kodu administratora) |
 
 4. Skrót do panelu: `http://localhost/testnauka/admin/`.
 
@@ -38,6 +39,9 @@ i kodami) oraz **grupę materiałów** (dodawanie i edycja slajdów).
 - Dwie grupy z ograniczonym dostępem (`firma` / `materialy`), brak dostępu → 403.
 - **Administrator nie zakłada kont** – wysyła kod rejestracyjny na e-mail, a odbiorca
   zakłada konto samodzielnie w `rejestracja.php` (e-mail + kod + imię + hasło).
+- **Konta z wymogiem kodu** – administrator może włączyć dla konta flagę „Wymaga kodu”
+  (przycisk w sekcji `Użytkownicy`). Takie konto **nie zaloguje się** bez kodu wysłanego
+  przez administratora; po zużyciu kodu wymóg obowiązuje przy każdym kolejnym logowaniu.
 - Przycisk **„Generuj i wyślij kod”** – 6-znakowy kod z cyfr i wielkich liter,
   wysyłany na e-mail, ważny 15 minut, jednorazowy.
 - Dodawanie i edycja slajdów: tytuł, treść, obraz, układ, przycisk CTA,
@@ -92,20 +96,43 @@ status aktywny/aktywowany.
 Pozostałe konta zakładają się **wyłącznie** przez kod rejestracyjny (patrz sekcja
 „Jak dodać nowego użytkownika”).
 
+## Konto wymagające kodu od administratora
+
+Konto, do którego zalogowanie wymaga kodu wysłanego przez administratora, zakłada się
+skryptem `tools/utworz_uzytkownika.php`:
+
+```bash
+php tools\utworz_uzytkownika.php pracownik@firma.pl Pracownik123! "Jan Kowalski" materialy
+```
+
+Konto powstaje aktywne, w grupie `materialy`, z flagą `wymaga_kod = 1`:
+
+- logowanie bez kodu → **odrzucone** („To konto wymaga kodu weryfikacyjnego wysyłanego
+  przez administratora”),
+- administrator w panelu (`Użytkownicy` → „Generuj i wyślij kod”) wysyła kod na e-mail konta,
+- użytkownik loguje się e-mailem i hasłem, a następnie wpisuje kod na ekranie weryfikacji,
+- kod jest jednorazowy (15 minut) – przy kolejnym logowaniu potrzebny jest nowy kod
+  od administratora.
+
+Flagę włącza/wyłącza się też w panelu (przycisk „Wymaga kodu” / „Bez wymogu kodu”).
+Konto z tym wymogiem nie może wygenerować kodu samodzielnie (przycisk na panelu startowym
+jest ukryty i odrzucany po stronie serwera).
+
 ## Testy
 
 ```bash
 # 1. serwer deweloperski
 php -S 127.0.0.1:8099 -t C:\laragon\www\TestNauka
 
-# 2. testy integracyjne (50 sprawdzeń: HTTP + baza + Mailpit)
+# 2. testy integracyjne (59 sprawdzeń: HTTP + baza + Mailpit)
 php tools/testy.php
 ```
 
 Testy obejmują logowanie dla obu grup, blokadę 403, generowanie i wysyłkę kodu
 (sprawdzany jest kod w Mailpit), format i ważność kodu, przepływ
-„kod rejestracyjny → rejestracja → logowanie”, dodawanie slajdów z obrazem,
-walidację uploadu, ochronę CSRF, aktywację konta oraz throttling logowania.
+„kod rejestracyjny → rejestracja → logowanie”, konto wymagające kodu administratora,
+dodawanie slajdów z obrazem, walidację uploadu, ochronę CSRF, aktywację konta
+oraz throttling logowania.
 Skrypt na początku resetuje bazę, więc przebieg jest powtarzalny.
 
 Pomocnicze skrypty (wymagają uruchomionego serwera):
@@ -114,6 +141,8 @@ Pomocnicze skrypty (wymagają uruchomionego serwera):
 php tools/kody.php      # aktywne kody i zaproszenia w bazie
 php tools/stan.php      # stan bazy (konta, zaproszenia, slajdy)
 php tools/manual.php    # ręczna kontrola: kod -> rejestracja -> logowanie
+php tools/manual_kod.php # ręczna kontrola konta wymagającego kodu administratora
 php tools/mailpit.php   # ostatnie wiadomości w Mailpit
-php tools\utworz_admina.php   # konto administratora bez kodu
+php tools\utworz_admina.php     # konto administratora bez kodu
+php tools\utworz_uzytkownika.php # konto wymagające kodu administratora
 ```

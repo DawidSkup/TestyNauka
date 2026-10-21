@@ -82,6 +82,12 @@ Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na kla
   przy generowaniu nowego.
 - **Cele kodu:** `logowanie` (dodatkowe potwierdzenie przy logowaniu), `aktywacja`
   (reset hasła przez istniejące konto) oraz `rejestracja` (kod zaproszenia w tabeli `zaproszenia`).
+- **Konto z flagą `wymaga_kod`:** konto, do którego administrator włącza wymóg kodu
+  (przycisk „Wymaga kodu” w sekcji `Użytkownicy`). Bez aktywnego kodu wysłanego przez
+  administratora logowanie jest **odrzucone** – użytkownik widzi komunikat, że musi poprosić
+  administratora o kod. Po użyciu kodu (jest jednorazowy) kolejne logowanie znowu wymaga
+  nowego kodu od administratora. Konto z tym wymogiem nie może samo wygenerować sobie kodu
+  (przycisk na panelu startowym jest ukryty i odrzucany po stronie serwera).
 - **Wysyłka:** e-mail HTML z tematem i treścią w UTF-8; informacja o błędzie wysyłki
   zapisywana w tabeli `log`. Kod jest jednorazowy – po poprawnym użyciu oznaczany jako zużyty.
 - **Bezpieczeństwo:** kody weryfikacyjne przechowywane są w bazie, wysyłka nie ujawnia kodu
@@ -91,7 +97,7 @@ Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na kla
 
 | Tabela  | Kolumny                                                                                       |
 |---------|-----------------------------------------------------------------------------------------------|
-| `users` | `id`, `imie`, `email` (UNIQUE), `haslo_hash`, `grupa`, `aktywny`, `aktywowany`, `created_at`, `updated_at` |
+| `users` | `id`, `imie`, `email` (UNIQUE), `haslo_hash`, `grupa`, `aktywny`, `aktywowany`, `wymaga_kod`, `created_at`, `updated_at` |
 | `kody`  | `id`, `user_id` → `users`, `kod`, `cel`, `wygasa_at`, `uzyty_at`, `wyslany_at`, `created_at`        |
 | `zaproszenia` | `id`, `email`, `grupa`, `kod`, `wygasa_at`, `uzyty_at`, `utworzony_przez` → `users`, `created_at` |
 | `slajdy`| `id`, `tytul`, `tresc`, `obraz`, `uklad`, `przycisk`, `link`, `status`, `kolejnosc`, `autor_id` → `users`, `created_at`, `updated_at` |
@@ -129,12 +135,14 @@ TestNauka/
 │   ├── style.css
 │   └── app.js
 ├── tools/               # skrypty pomocnicze i testy integracyjne
-│   ├── testy.php        # 50 testów HTTP + baza (php tools/testy.php)
+│   ├── testy.php        # 59 testów HTTP + baza (php tools/testy.php)
 │   ├── kody.php         # podgląd aktywnych kodów i zaproszeń w bazie
 │   ├── stan.php         # podgląd stanu bazy (konta, zaproszenia, slajdy)
 │   ├── manual.php       # ręczna kontrola przepływu kod -> rejestracja -> logowanie
+│   ├── manual_kod.php   # ręczna kontrola konta wymagającego kodu administratora
 │   ├── mailpit.php      # podgląd wiadomości w Mailpit
-│   └── utworz_admina.php # konto administratora bez kodu (CLI)
+│   ├── utworz_admina.php # konto administratora bez kodu (CLI)
+│   └── utworz_uzytkownika.php # konto wymagające kodu administratora (CLI)
 └── data/                # baza SQLite + pliki uploadowane (poza repo)
 ```
 
@@ -179,6 +187,8 @@ TestNauka/
 - [x] Odbiorca kodu zakłada konto samodzielnie w `rejestracja.php` (e-mail + kod + hasło),
       a konto od razu działa w grupie wskazanej w zaproszeniu.
 - [x] Kod rejestracyjny jest jednorazowy, wygasa po 15 minutach i nie działa dla innego e-maila.
+- [x] Konto z włączonym wymogiem kodu **nie da się zalogować** bez kodu wysłanego przez
+      administratora; po zużyciu kodu wymóg obowiązuje przy każdym kolejnym logowaniu.
 
 Status realizacji: **wszystkie kryteria spełnione** — potwierdzone testem integracyjnym
-`php tools/testy.php` (50/50 testów zielonych).
+`php tools/testy.php` (59/59 testów zielonych).

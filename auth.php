@@ -57,6 +57,14 @@ function in_group(string ...$groups): bool
     return in_array($user['grupa'], $groups, true);
 }
 
+/**
+ * Czy konto wymaga kodu wysłanego przez administratora przy logowaniu.
+ */
+function user_requires_code(?array $user): bool
+{
+    return $user !== null && (int) ($user['wymaga_kod'] ?? 0) === 1;
+}
+
 /** Wymusza zalogowanie + przynależność do grupy (403 gdy brak uprawnień). */
 function require_group(string ...$groups): void
 {

@@ -48,15 +48,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($_SESSION['login_bledy'], $_SESSION['login_blokada_do']);
 
             // Drugi czynnik: jeśli istnieje aktywny kod logowania – wymagamy go.
-            if (active_code((int) $user['id'], 'logowanie') !== null) {
+            $maKod = active_code((int) $user['id'], 'logowanie') !== null;
+
+            if ((int) ($user['wymaga_kod'] ?? 0) === 1 && !$maKod) {
+                // Konto z flagą „wymaga kod” – bez kodu od administratora nie da się zalogować.
+                $error = 'To konto wymaga kodu weryfikacyjnego wysyłanego przez administratora. '
+                    . 'Poproś administratora o wygenerowanie kodu i spróbuj ponownie.';
+                log_action('brak_kodu_logowania', (string) $user['email'], (int) $user['id']);
+            } elseif ($maKod) {
                 $_SESSION['pending_user_id'] = (int) $user['id'];
                 redirect(app_url('weryfikacja.php'));
+            } else {
+                login_user((int) $user['id'], true);
+                log_action('logowanie', (string) $user['email'], (int) $user['id']);
+                flash('success', 'Zalogowano pomyślnie. Witaj, ' . $user['imie'] . '!');
+                redirect(app_url('admin/index.php'));
             }
-
-            login_user((int) $user['id'], true);
-            log_action('logowanie', (string) $user['email'], (int) $user['id']);
-            flash('success', 'Zalogowano pomyślnie. Witaj, ' . $user['imie'] . '!');
-            redirect(app_url('admin/index.php'));
         }
     }
 }

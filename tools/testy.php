@@ -155,6 +155,94 @@ check(
 );
 
 /* ------------------------------------------------------------------ */
+/* 2b. Konto wymagajace kodu wysylanego przez administratora            */
+/* ------------------------------------------------------------------ */
+$pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
+$pdoK->prepare(
+    'INSERT INTO users (imie, email, haslo_hash, grupa, aktywny, aktywowany, wymaga_kod, created_at, updated_at)
+     VALUES (:imie, :email, :haslo, :grupa, 1, 1, 1, :now, :now)'
+)->execute([
+    ':imie'  => 'Kodowy User',
+    ':email' => 'kodowy@firma.pl',
+    ':haslo' => password_hash('Kodowy123!', PASSWORD_DEFAULT),
+    ':grupa' => 'materialy',
+    ':now'   => date('Y-m-d H:i:s'),
+]);
+$kodowyId = (int) $pdoK->lastInsertId();
+$pdoK = null;
+check('Konto z flaga wymaga_kod utworzone', $kodowyId > 0, "(id=$kodowyId)");
+
+/* Logowanie bez kodu od administratora jest odrzucane */
+@unlink($jar);
+$r = req('GET', $base . '/login.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'kodowy@firma.pl', 'haslo' => 'Kodowy123!']);
+check('Logowanie bez kodu admina odrzucone', str_contains($r['html'], 'wymaga kodu weryfikacyjnego'));
+
+$r = req('GET', $base . '/admin/index.php');
+check('Brak dostepu do panelu bez kodu', !str_contains($r['html'], 'Panel startowy'));
+
+/* Administrator wysyla kod logowania */
+@unlink($jar);
+$pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
+$pdoK->exec("UPDATE kody SET uzyty_at = datetime('now') WHERE cel = 'logowanie' AND uzyty_at IS NULL");
+$pdoK = null;
+
+$r = req('GET', $base . '/login.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'admin@firma.pl', 'haslo' => 'Admin123!'], null, false);
+check('Logowanie administratora w sekcji 2b', $r['status'] === 302 && !str_contains((string) $r['head'], 'weryfikacja.php'));
+
+$r = req('GET', $base . '/admin/uzytkownicy.php');
+check('Panel: znacznik "wymaga kodu"', str_contains($r['html'], 'wymaga kodu'));
+
+$token = csrf($r['html']);
+$r = req('POST', $base . '/admin/uzytkownicy.php', [
+    'csrf' => $token, 'akcja' => 'kod', 'user_id' => (string) $kodowyId, 'cel' => 'logowanie',
+]);
+check('Wyslanie kodu dla konta z wymogiem', str_contains($r['html'], 'wysłany na'));
+
+$kodLog = (string) db_scalar(
+    "SELECT kod FROM kody WHERE user_id = $kodowyId AND cel = 'logowanie' AND uzyty_at IS NULL ORDER BY id DESC LIMIT 1"
+);
+check('Kod logowania zapisany', (bool) preg_match('/^[A-Z0-9]{6}$/', $kodLog), "($kodLog)");
+
+/* Logowanie wymaga kodu -> przekierowanie na weryfikacje */
+@unlink($jar);
+$r = req('GET', $base . '/login.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'email' => 'kodowy@firma.pl', 'haslo' => 'Kodowy123!',
+], null, false);
+check(
+    'Logowanie wymaga kodu (przekierowanie na weryfikacje)',
+    $r['status'] === 302 && str_contains((string) $r['head'], 'weryfikacja.php')
+);
+
+$r = req('GET', $base . '/weryfikacja.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/weryfikacja.php', ['csrf' => $token, 'kod' => $kodLog], null, false);
+check('Weryfikacja kodu - przekierowanie do panelu', $r['status'] === 302);
+
+$r = req('GET', $base . '/admin/index.php');
+check('Panel dostepny po weryfikacji kodu', $r['status'] === 200 && str_contains($r['html'], 'Panel startowy'));
+check(
+    'Brak samodzielnego generowania kodu',
+    !str_contains($r['html'], 'Generuj i wyślij kod na e-mail')
+);
+
+/* Kod jest jednorazowy - kolejne logowanie znowu wymaga kodu */
+@unlink($jar);
+$r = req('GET', $base . '/login.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'kodowy@firma.pl', 'haslo' => 'Kodowy123!']);
+check('Kolejne logowanie wymaga nowego kodu', str_contains($r['html'], 'wymaga kodu weryfikacyjnego'));
+
+$pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
+$pdoK->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $kodowyId]);
+$pdoK = null;
+
+/* ------------------------------------------------------------------ */
 /* 3. Uprawnienia grupy materialow                                     */
 /* ------------------------------------------------------------------ */
 @unlink($jar);

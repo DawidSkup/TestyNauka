@@ -161,6 +161,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect(app_url('admin/uzytkownicy.php'));
     }
 
+    /* --- Wymóg kodu administratora przy logowaniu ------------------------ */
+    if ($akcja === 'wymaga_kod') {
+        $id = (int) ($_POST['user_id'] ?? 0);
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $cel = $stmt->fetch();
+
+        if ($cel) {
+            $nowa = (int) $cel['wymaga_kod'] === 1 ? 0 : 1;
+
+            $pdo->prepare('UPDATE users SET wymaga_kod = :w, updated_at = :n WHERE id = :id')
+                ->execute([':w' => $nowa, ':n' => date('Y-m-d H:i:s'), ':id' => $id]);
+
+            // Po wyłączeniu wymogu kasujemy niewykorzystany kod logowania.
+            if ($nowa === 0) {
+                $pdo->prepare('UPDATE kody SET uzyty_at = :now WHERE user_id = :u AND cel = :c AND uzyty_at IS NULL')
+                    ->execute([
+                        ':now' => date('Y-m-d H:i:s'),
+                        ':u'   => $id,
+                        ':c'   => 'logowanie',
+                    ]);
+            }
+
+            log_action(
+                $nowa === 1 ? 'wlaczono_wymog_kodu' : 'wylaczono_wymog_kodu',
+                (string) $cel['email'],
+                (int) $user['id']
+            );
+
+            flash(
+                'success',
+                $nowa === 1
+                    ? 'Konto ' . $cel['email'] . ' wymaga teraz kodu wysyłanego przez administratora.'
+                    : 'Konto ' . $cel['email'] . ' nie wymaga już kodu administratora.'
+            );
+        }
+
+        redirect(app_url('admin/uzytkownicy.php'));
+    }
+
     /* --- Reset hasła ----------------------------------------------------- */
     if ($akcja === 'reset') {
         $id    = (int) ($_POST['user_id'] ?? 0);
@@ -340,6 +380,7 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
                 <th>Grupa</th>
                 <th>Status</th>
                 <th>Aktywny kod</th>
+                <th>Kod admina</th>
                 <th>Slajdy</th>
                 <th class="th-actions">Akcje</th>
             </tr>
@@ -386,6 +427,13 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
                             <span class="muted">—</span>
                         <?php endif; ?>
                     </td>
+                    <td>
+                        <?php if ((int) $u['wymaga_kod'] === 1): ?>
+                            <span class="badge badge-warn">wymaga kodu</span>
+                        <?php else: ?>
+                            <span class="muted small">bez wymogu</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="muted"><?= e((string) $u['liczba_slajdow']) ?></td>
                     <td class="td-actions">
                         <form method="post" class="form-inline" id="formKod<?= e((string) $u['id']) ?>">
@@ -395,6 +443,15 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
                             <input type="hidden" name="cel" value="logowanie">
                             <button type="submit" class="btn btn-sm btn-primary">
                                 Generuj i wyślij kod
+                            </button>
+                        </form>
+
+                        <form method="post" class="form-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="akcja" value="wymaga_kod">
+                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                            <button type="submit" class="btn btn-sm btn-ghost">
+                                <?= (int) $u['wymaga_kod'] === 1 ? 'Bez wymogu kodu' : 'Wymaga kodu' ?>
                             </button>
                         </form>
 

@@ -65,6 +65,7 @@
 - [x] `admin/uzytkownicy.php` – lista zaproszeń: status (oczekuje / wygasłe / wykorzystane),
       ponowna wysyłka kodu, anulowanie zaproszenia
 - [x] `admin/uzytkownicy.php` – zmiana grupy (select z autosave), blokada/wyłączenie konta
+- [x] `admin/uzytkownicy.php` – przełącznik „Wymaga kodu” (konto bez kodu admina się nie zaloguje)
 - [x] `admin/uzytkownicy.php` – reset hasła przez administratora
 - [x] `admin/uzytkownicy.php` – **przycisk „Generuj i wyślij kod”** per użytkownik
 - [x] `admin/uzytkownicy.php` – wysyłka kodu na e-mail wybranego użytkownika
@@ -104,7 +105,7 @@
 
 ## Faza 9 – Testy i weryfikacja ✅
 
-- [x] `tools/testy.php` – 50 testów integracyjnych na HTTP + bazę
+- [x] `tools/testy.php` – 59 testów integracyjnych na HTTP + bazę
 - [x] Uruchomienie serwera PHP i sprawdzenie braku błędów w logu
 - [x] Test logowania dla obu grup (`admin@firma.pl`, `marketing@firma.pl`)
 - [x] Test blokady: grupa `materialy` nie wchodzi do `admin/uzytkownicy.php` → 403
@@ -117,6 +118,8 @@
 - [x] Test aktywacji konta kodem + reset hasła
 - [x] Test przepływu „kod rejestracyjny → rejestracja → logowanie” (w tym: administrator
       nie tworzy konta, błędny kod odrzucony, konto aktywne od razu, jednorazowość kodu)
+- [x] Test konta z wymogiem kodu (logowanie bez kodu odrzucone, z kodem → weryfikacja → panel,
+      kolejne logowanie znowu wymaga kodu)
 - [x] Test throttlingu logowania
 - [x] Testy powtarzalne (reset bazy na początku przebiegu)
 
@@ -141,10 +144,10 @@
 | 6. Materiały (slajdy) | ✅ zrobione | tylko slajdy, upload, kolejność, podgląd |
 | 7. API i JavaScript | ✅ zrobione | `api/kod.php`, `assets/app.js` |
 | 8. Warstwa wizualna | ✅ zrobione | `assets/style.css` |
-| 9. Testy | ✅ zrobione | 50/50 zielonych (`php tools/testy.php`) |
+| 9. Testy | ✅ zrobione | 59/59 zielonych (`php tools/testy.php`) |
 | 10. Dokumentacja | ✅ zrobione | `README.md`, `AGENTS.md`, `plan.md` |
 
-**Wykonano:** 99 / 99 zadań
+**Wykonano:** 102 / 102 zadań
 
 ## Znalezione i naprawione błędy
 
@@ -162,3 +165,6 @@
 7. **Administrator tworzył konta za użytkowników** – zmieniono model: administrator wysyła
    kod rejestracyjny na e-mail, a konto zakłada odbiorca kodu (`rejestracja.php`); w bazie
    pojawiła się tabela `zaproszenia`, a tworzenie kont z panelu zostało usunięte.
+8. **Kod logowania był właściwością chwilową** – doszedł flag `users.wymaga_kod`: konto
+   z włączonym wymogiem nie loguje się bez kodu wysłanego przez administratora (także po
+   zużyciu poprzedniego kodu), a użytkownik nie może wygenerować kodu samodzielnie.

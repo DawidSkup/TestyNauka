@@ -11,6 +11,11 @@ $user = current_user();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['akcja'] ?? '') === 'moj_kod') {
     csrf_require($_POST['csrf'] ?? null);
 
+    if (user_requires_code($user)) {
+        flash('warning', 'Twoje konto wymaga kodu wysyłanego przez administratora – nie możesz wygenerować go samodzielnie.');
+        redirect(app_url('admin/index.php'));
+    }
+
     $wynik = generate_and_send_code((int) $user['id'], 'logowanie');
 
     if ($wynik['wyslany']) {
@@ -73,27 +78,36 @@ layout_header('Panel startowy', 'index.php');
 <section class="grid grid-2">
     <div class="card">
         <h2 class="card-title">Kod weryfikacyjny</h2>
-        <p class="muted">
-            Wygeneruj 6-znakowy kod (wielkie litery i cyfry) i wyślij go na swój adres e-mail.
-            Kod będzie wymagany przy następnym logowaniu.
-        </p>
 
-        <?php if ($mojKod): ?>
-            <div class="code-box">
-                <span class="code-label">Twój aktywny kod</span>
-                <span class="code-value" id="myCode"><?= e($mojKod['kod']) ?></span>
-                <span class="muted small">wygasa <?= e(fmt_remaining($mojKod['wygasa_at'])) ?></span>
-                <button class="btn btn-ghost btn-sm" type="button" data-copy="#myCode">Kopiuj kod</button>
-            </div>
+        <?php if (user_requires_code($user)): ?>
+            <p class="muted">
+                Twoje konto wymaga kodu wysyłanego przez administratora – poproś grupę firmy
+                o wygenerowanie kodu przyciskiem „Generuj i wyślij kod”.
+            </p>
+            <p class="muted small">Nie możesz wygenerować kodu samodzielnie.</p>
         <?php else: ?>
-            <p class="muted small">Brak aktywnego kodu.</p>
-        <?php endif; ?>
+            <p class="muted">
+                Wygeneruj 6-znakowy kod (wielkie litery i cyfry) i wyślij go na swój adres e-mail.
+                Kod będzie wymagany przy następnym logowaniu.
+            </p>
 
-        <form method="post" class="form-inline">
-            <?= csrf_field() ?>
-            <input type="hidden" name="akcja" value="moj_kod">
-            <button type="submit" class="btn btn-primary">Generuj i wyślij kod na e-mail</button>
-        </form>
+            <?php if ($mojKod): ?>
+                <div class="code-box">
+                    <span class="code-label">Twój aktywny kod</span>
+                    <span class="code-value" id="myCode"><?= e($mojKod['kod']) ?></span>
+                    <span class="muted small">wygasa <?= e(fmt_remaining($mojKod['wygasa_at'])) ?></span>
+                    <button class="btn btn-ghost btn-sm" type="button" data-copy="#myCode">Kopiuj kod</button>
+                </div>
+            <?php else: ?>
+                <p class="muted small">Brak aktywnego kodu.</p>
+            <?php endif; ?>
+
+            <form method="post" class="form-inline">
+                <?= csrf_field() ?>
+                <input type="hidden" name="akcja" value="moj_kod">
+                <button type="submit" class="btn btn-primary">Generuj i wyślij kod na e-mail</button>
+            </form>
+        <?php endif; ?>
     </div>
 
     <div class="card">

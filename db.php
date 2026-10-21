@@ -33,6 +33,22 @@ function db(): PDO
 }
 
 /**
+ * Dodaje kolumnę do tabeli, jeśli jeszcze nie istnieje (migracja SQLite).
+ */
+function db_add_column(PDO $pdo, string $table, string $column, string $definition): void
+{
+    $kolumny = $pdo->query('PRAGMA table_info(' . $table . ')')->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($kolumny as $k) {
+        if ((string) ($k['name'] ?? '') === $column) {
+            return;
+        }
+    }
+
+    $pdo->exec('ALTER TABLE ' . $table . ' ADD COLUMN ' . $column . ' ' . $definition);
+}
+
+/**
  * Tworzy tabele (jeśli nie istnieją) oraz konta startowe.
  */
 function db_migrate(PDO $pdo): void
@@ -66,6 +82,9 @@ function db_migrate(PDO $pdo): void
     SQL);
 
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_kody_user ON kody(user_id, cel)');
+
+    // Konto z flagą `wymaga_kod` nie da się zalogować bez kodu wysłanego przez administratora.
+    db_add_column($pdo, 'users', 'wymaga_kod', 'INTEGER NOT NULL DEFAULT 0');
 
     // Zaproszenia: administrator wysyła kod na e-mail, a odbiorca zakłada konto sam.
     $pdo->exec(<<<'SQL'
