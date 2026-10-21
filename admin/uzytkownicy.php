@@ -309,7 +309,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                         <?php else: ?>
                             <span class="badge badge-off">zablokowane</span>
                         <?php endif; ?>
-                        <?php if ((int) $u['aktywowane'] !== 1): ?>
+                        <?php if ((int) $u['aktywowany'] !== 1): ?>
                             <span class="badge badge-warn">nieaktywowane</span>
                         <?php endif; ?>
                     </td>

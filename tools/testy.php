@@ -96,6 +96,25 @@ function db_scalar(string $sql)
     return $rows ? array_values($rows[0])[0] : null;
 }
 
+/**
+ * Wykrywa komunikaty PHP (Warning/Notice/Deprecated/Fatal error) w treści strony.
+ * Zwraca pierwszy znaleziony komunikat albo pusty string.
+ */
+function blad_php(string $html): string
+{
+    if (preg_match('/<(?:b|strong)>(Warning|Notice|Deprecated|Fatal error|Parse error)<\/b>|<b>(Warning|Notice|Deprecated|Fatal error|Parse error):/', $html, $m)) {
+        $p = strpos($html, $m[0]);
+        return trim(preg_replace('/\s+/', ' ', substr($html, (int) $p, 220)) ?? '');
+    }
+
+    if (preg_match('/Undefined (?:array key|variable|index|offset)/', $html, $m)) {
+        $p = strpos($html, $m[0]);
+        return trim(preg_replace('/\s+/', ' ', substr($html, (int) $p, 220)) ?? '');
+    }
+
+    return '';
+}
+
 /* ------------------------------------------------------------------ */
 /* 1. Logowanie                                                        */
 /* ------------------------------------------------------------------ */
@@ -114,6 +133,8 @@ check('Logowanie - grupa firma', $r['status'] === 302, '(HTTP ' . $r['status'] .
 
 $r = req('GET', $base . '/admin/index.php');
 check('Panel startowy (grupa firma)', $r['status'] === 200 && str_contains($r['html'], 'Panel startowy'));
+$bladPhp = blad_php($r['html']);
+check('Panel startowy: brak bledow PHP', $bladPhp === '', $bladPhp);
 
 $token = csrf($r['html']);
 $r = req('POST', $base . '/admin/index.php', ['csrf' => $token, 'akcja' => 'moj_kod']);
@@ -124,6 +145,13 @@ check(
 
 $r = req('GET', $base . '/admin/uzytkownicy.php');
 check('Sekcja Użytkownicy dla grupy firma', $r['status'] === 200 && str_contains($r['html'], 'Generuj i wyślij kod'));
+check(
+    'Lista kont podzielona na Administratorow i Uzytkownikow',
+    str_contains($r['html'], 'Administratorzy <span class="muted">(grupa firmy')
+        && str_contains($r['html'], 'Użytkownicy <span class="muted">(grupa materiałów')
+);
+$bladPhp = blad_php($r['html']);
+check('Panel: brak bledow PHP w sekcji Uzytkownicy', $bladPhp === '', $bladPhp);
 
 /* ------------------------------------------------------------------ */
 /* 2. Generowanie i wysyłka kodu                                      */

@@ -3,7 +3,7 @@
 > Dokument roboczy. Statusy aktualizowane na bieżąco.
 > Legenda: `[x]` zrobione · `[ ]` do zrobienia · `[~]` w trakcie · `[!]` problem/ryzyko
 
-**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona (79/79 testów zielonych)**
+**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona (82/82 testów zielonych)**
 
 ---
 
@@ -108,7 +108,7 @@
 
 ## Faza 9 – Testy i weryfikacja ✅
 
-- [x] `tools/testy.php` – 79 testów integracyjnych na HTTP + bazę
+- [x] `tools/testy.php` – 82 testów integracyjnych na HTTP + bazę
 - [x] Uruchomienie serwera PHP i sprawdzenie braku błędów w logu
 - [x] Test logowania dla obu grup (`admin@firma.pl`, `marketing@firma.pl`)
 - [x] Test wyboru trybu logowania (Administrator = e-mail + hasło, Użytkownik = sam kod)
@@ -150,7 +150,7 @@
 | 6. Materiały (slajdy) | ✅ zrobione | tylko slajdy, upload, kolejność, podgląd |
 | 7. API i JavaScript | ✅ zrobione | `api/kod.php`, `assets/app.js` |
 | 8. Warstwa wizualna | ✅ zrobione | `assets/style.css` |
-| 9. Testy | ✅ zrobione | 79/79 zielonych (`php tools/testy.php`) |
+| 9. Testy | ✅ zrobione | 82/82 zielonych (`php tools/testy.php`) |
 | 10. Dokumentacja | ✅ zrobione | `README.md`, `AGENTS.md`, `plan.md` |
 
 **Wykonano:** 107 / 107 zadań

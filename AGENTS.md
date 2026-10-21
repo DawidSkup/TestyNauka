@@ -153,7 +153,7 @@ TestNauka/
 │   ├── style.css
 │   └── app.js
 ├── tools/               # skrypty pomocnicze i testy integracyjne
-│   ├── testy.php        # 79 testów HTTP + baza (php tools/testy.php)
+│   ├── testy.php        # 82 testów HTTP + baza (php tools/testy.php)
 │   ├── kody.php         # podgląd aktywnych kodów i zaproszeń w bazie
 │   ├── stan.php         # podgląd stanu bazy (konta, zaproszenia, slajdy)
 │   ├── manual.php       # ręczna kontrola przepływu kod -> rejestracja -> logowanie
@@ -219,6 +219,8 @@ TestNauka/
 
 - [x] Lista kont w sekcji `Użytkownicy` jest podzielona na **„Administratorzy”** (grupa `firma`)
       i **„Użytkownicy”** (grupa `materialy`); zmiana grupy przenosi konto między listami.
+- [x] Panel nie generuje błędów PHP – testy wykrywają ostrzeżenia (`Warning`, `Notice`,
+      `Deprecated`) i niezdefiniowane klucze w renderowanych stronach.
 
 Status realizacji: **wszystkie kryteria spełnione** — potwierdzone testem integracyjnym
-`php tools/testy.php` (79/79 testów zielonych).
+`php tools/testy.php` (82/82 testów zielonych).
