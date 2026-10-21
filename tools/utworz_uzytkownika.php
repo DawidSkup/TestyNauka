@@ -2,7 +2,8 @@
 declare(strict_types=1);
 
 /**
- * Tworzenie konta użytkownika, który musi zalogować się kodem od administratora.
+ * Tworzenie konta użytkownika (grupa materiałów – logowanie samym kodem
+ * z e-maila wysyłanego przez administratora).
  *
  * Użycie:
  *   php tools/utworz_uzytkownika.php                                       # tryb interaktywny
@@ -11,8 +12,10 @@ declare(strict_types=1);
  *
  * Konto zakładane tym skryptem:
  *   - aktywne i aktywowane,
- *   - z flagą `wymaga_kod = 1` – bez kodu wysłanego przez administratora
- *     logowanie jest odrzucane (kod jednorazowy, ważny 15 minut),
+ *   - z flagą `wymaga_kod = 1` – kod logowania musi pochodzić od administratora
+ *     (konto nie wygeneruje go samo; kod jednorazowy, ważny 15 minut),
+ *   - grupa `materialy` – logowanie **tylko kodem** z e-maila,
+ *   - grupa `firma` – logowanie e-mail + hasło, a następnie kod (drugi czynnik),
  *   - niewykorzystane kody logowania są unieważniane.
  *
  * Skrypt nie wysyła żadnego e-maila – kod wysyła administrator z panelu
@@ -67,6 +70,10 @@ $pdo  = db();
 $now  = date('Y-m-d H:i:s');
 $hash = password_hash($haslo, PASSWORD_DEFAULT);
 
+/* Flaga `wymaga_kod` = kod logowania musi pochodzić od administratora
+   (konto nie może wygenerować go samo – self-service jest wtedy zablokowany). */
+$wymagaKod = 1;
+
 $stmt = $pdo->prepare('SELECT * FROM users WHERE email = :email');
 $stmt->execute([':email' => $email]);
 $istniejacy = $stmt->fetch();
@@ -77,12 +84,13 @@ if ($istniejacy) {
     $pdo->prepare(
         'UPDATE users
             SET imie = :imie, haslo_hash = :haslo, grupa = :grupa,
-                aktywny = 1, aktywowany = 1, wymaga_kod = 1, updated_at = :now
+                aktywny = 1, aktywowany = 1, wymaga_kod = :wymaga, updated_at = :now
           WHERE id = :id'
     )->execute([
         ':imie'  => $imie,
         ':haslo' => $hash,
         ':grupa' => $grupa,
+        ':wymaga' => $wymagaKod,
         ':now'   => $now,
         ':id'    => $id,
     ]);
@@ -96,12 +104,13 @@ if ($istniejacy) {
 } else {
     $pdo->prepare(
         'INSERT INTO users (imie, email, haslo_hash, grupa, aktywny, aktywowany, wymaga_kod, created_at, updated_at)
-         VALUES (:imie, :email, :haslo, :grupa, 1, 1, 1, :now, :now)'
+         VALUES (:imie, :email, :haslo, :grupa, 1, 1, :wymaga, :now, :now)'
     )->execute([
         ':imie'  => $imie,
         ':email' => $email,
         ':haslo' => $hash,
         ':grupa' => $grupa,
+        ':wymaga' => $wymagaKod,
         ':now'   => $now,
     ]);
 
@@ -115,6 +124,9 @@ echo "  e-mail    : {$email}\n";
 echo "  hasło     : ustawione\n";
 echo "  grupa     : " . GROUPS[$grupa] . "\n";
 echo "  status    : aktywne, aktywowane\n";
-echo "  logowanie : wymaga kodu od administratora (jednorazowy, ważny "
-    . CODE_TTL_MINUTES . ' min)' . "\n";
+echo "  logowanie : "
+    . ($grupa === GROUP_MATERIALY
+        ? 'tylko kodem z e-maila (jednorazowy, ważny ' . CODE_TTL_MINUTES . ' min), kod wysyła administrator'
+        : 'e-mail + hasło + kod od administratora')
+    . "\n";
 echo "  następny krok: panel → Użytkownicy → „Generuj i wyślij kod” dla tego konta\n";

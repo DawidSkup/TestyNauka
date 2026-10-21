@@ -11,15 +11,28 @@
 
 ## 2. Logowanie do panelu administracyjnego
 
-Panel jest zabezpieczony logowaniem (e-mail + hasło). Po poprawnym zalogowaniu tworzona jest
-sesja z regeneracją ID; wylogowanie kasuje sesję.
+Na stronie logowania użytkownik **wybiera sposób logowania** (dwie zakładki):
 
-- **Grupy użytkowników (2):**
+| Zakładka        | Kto się loguje       | Jakie dane                          | Jak działa                                                              |
+|-----------------|-----------------------|-------------------------------------|-------------------------------------------------------------------------|
+| **Administrator**| grupa `firma`        | e-mail + hasło                      | sesja z regeneracją ID; przy koncie z flagą `wymaga_kod` dodatkowo kod   |
+| **Użytkownik**  | grupa `materialy`    | **tylko 6-znakowy kod z e-maila**   | kod jest jedynym poświadczeniem – konsumowany przy logowaniu            |
 
-  | Grupa          | Zakres odpowiedzialności                                                        |
-  |----------------|----------------------------------------------------------------------------------|
-  | `firma`        | Zarządzanie użytkownikami i kodami, wgląd w statystyki, dostęp do materiałów     |
-  | `materialy`    | Dodawanie i edycja materiałów – **wyłącznie w postaci slajdów**                |
+- Logowanie w zakładce „Administrator” kontem z grupy `materialy` jest **odrzucone**
+  (komunikat: „To konto nie ma uprawnień administratora…”), a kod z zakładki „Użytkownik”
+  nie loguje konta grupy `firma` (komunikat: „To konto administratora…”).
+- Kod w zakładce „Użytkownik” musi być **aktywnym, niewykorzystanym i niewygasłym** kodem
+  o celu `logowanie` w bazie; po poprawnym użyciu jest oznaczany jako zużyty (jednorazowy).
+- Wylogowanie kasuje sesję; po zalogowaniu hasłem konto z flagą `wymaga_kod` trafia
+  dodatkowo na `weryfikacja.php` (drugi czynnik).
+- Throttling: 5 błędnych prób logowania (w obu zakładkach) blokuje sesję na 10 minut.
+
+**Grupy użytkowników (2):**
+
+| Grupa          | Zakres odpowiedzialności                                                        |
+|----------------|----------------------------------------------------------------------------------|
+| `firma`        | Zarządzanie użytkownikami i kodami, wgląd w statystyki, dostęp do materiałów     |
+| `materialy`    | Dodawanie i edycja materiałów – **wyłącznie w postaci slajdów**                |
 
 - **Zakres sekcji w panelu:**
 
@@ -34,8 +47,8 @@ sesja z regeneracją ID; wylogowanie kasuje sesję.
 
 ## 2a. Zakładanie kont przez kod rejestracyjny
 
-Administrator **nie tworzy kont użytkowników** – wysyła jedynie kod na adres e-mail,
-a odbiorca zakłada konto samodzielnie:
+- **Zakładanie kont przez kod rejestracyjny** – administrator **nie tworzy kont użytkowników**
+  – wysyła jedynie kod na adres e-mail, a odbiorca zakłada konto samodzielnie:
 
 1. Administrator w sekcji `Użytkownicy` wpisuje **e-mail odbiorcy** i wybiera **grupę**
    (`firma` / `materialy`), po czym naciska **„Generuj kod i wyślij”**.
@@ -44,7 +57,8 @@ a odbiorca zakłada konto samodzielnie:
 3. Odbiorca wchodzi na `rejestracja.php` i podaje: e-mail, kod, imię i nazwisko oraz hasło
    (z potwierdzeniem).
 4. Konto powstaje **aktywne i aktywowane**, w grupie wskazanej w zaproszeniu, a użytkownik
-   zostaje zalogowany.
+   zostaje zalogowany. Przy **kolejnych** logowaniach konto grupy `materialy` loguje się
+   już samym kodem z e-maila (zakładka „Użytkownik”).
 
 Dodatkowe reguły:
 
@@ -80,14 +94,16 @@ Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na kla
   co najmniej jedną cyfrę i jedną wielką literę.
 - **Ważność kodu:** 15 minut; poprzedni niewykorzystany kod danego celu jest unieważniany
   przy generowaniu nowego.
-- **Cele kodu:** `logowanie` (dodatkowe potwierdzenie przy logowaniu), `aktywacja`
-  (reset hasła przez istniejące konto) oraz `rejestracja` (kod zaproszenia w tabeli `zaproszenia`).
-- **Konto z flagą `wymaga_kod`:** konto, do którego administrator włącza wymóg kodu
-  (przycisk „Wymaga kodu” w sekcji `Użytkownicy`). Bez aktywnego kodu wysłanego przez
+- **Cele kodu:** `logowanie` (jedynym poświadczeniem w zakładce „Użytkownik” oraz drugi
+  czynnik dla kont z flagą `wymaga_kod`), `aktywacja` (reset hasła przez istniejące konto)
+  oraz `rejestracja` (kod zaproszenia w tabeli `zaproszenia`).
+- **Konto z flagą `wymaga_kod`:** konto grupy `firma`, do którego administrator włącza wymóg
+  kodu (przycisk „Wymaga kodu” w sekcji `Użytkownicy`). Bez aktywnego kodu wysłanego przez
   administratora logowanie jest **odrzucone** – użytkownik widzi komunikat, że musi poprosić
   administratora o kod. Po użyciu kodu (jest jednorazowy) kolejne logowanie znowu wymaga
   nowego kodu od administratora. Konto z tym wymogiem nie może samo wygenerować sobie kodu
   (przycisk na panelu startowym jest ukryty i odrzucany po stronie serwera).
+  Konta grupy `materialy` mają wymóg kodu zawsze – logują się samym kodem z e-maila.
 - **Wysyłka:** e-mail HTML z tematem i treścią w UTF-8; informacja o błędzie wysyłki
   zapisywana w tabeli `log`. Kod jest jednorazowy – po poprawnym użyciu oznaczany jako zużyty.
 - **Bezpieczeństwo:** kody weryfikacyjne przechowywane są w bazie, wysyłka nie ujawnia kodu
@@ -117,7 +133,7 @@ TestNauka/
 ├── helpers.php          # helpery (escape, CSRF, flash, kod, e-mail)
 ├── auth.php             # sesja, uprawnienia grupy, kody jednorazowe
 ├── index.php            # przekierowanie do panelu / logowania
-├── login.php            # formularz logowania
+├── login.php            # logowanie: zakładka Administrator (e-mail + hasło) / Użytkownik (kod)
 ├── logout.php
 ├── weryfikacja.php      # weryfikacja kodu po zalogowaniu
 ├── aktywacja.php        # aktywacja konta kodem (istniejące konto)
@@ -135,7 +151,7 @@ TestNauka/
 │   ├── style.css
 │   └── app.js
 ├── tools/               # skrypty pomocnicze i testy integracyjne
-│   ├── testy.php        # 59 testów HTTP + baza (php tools/testy.php)
+│   ├── testy.php        # 78 testów HTTP + baza (php tools/testy.php)
 │   ├── kody.php         # podgląd aktywnych kodów i zaproszeń w bazie
 │   ├── stan.php         # podgląd stanu bazy (konta, zaproszenia, slajdy)
 │   ├── manual.php       # ręczna kontrola przepływu kod -> rejestracja -> logowanie
@@ -158,6 +174,9 @@ TestNauka/
 8. Throttling logowania: 5 błędnych próbl blokuje sesję na 10 minut (analogicznie rejestracja).
 9. Kod rejestracyjny jest jednorazowy i powiązany z konkretnym adresem e-mail – nie pozwala
    założyć konta dla innego adresu niż ten, na który został wysłany.
+10. Logowanie kodem (zakładka „Użytkownik”) przyjmuje wyłącznie **aktywny, niewykorzystany
+    i niewygasły** kod o celu `logowanie`; kod jest konsumowany w tej samej chwili, więc
+    nie da się zalogować się ponownie tym samym kodem.
 
 ## 8. Uruchomienie
 
@@ -165,12 +184,14 @@ TestNauka/
 2. Otwórz `http://localhost/testnauka/` – baza i katalog na pliki tworzą się same.
 3. Konta startowe (hasła zmieniane po pierwszym logowaniu):
 
-| E-mail              | Hasło            | Grupa      |
-|----------------------|------------------|------------|
-| `admin@firma.pl`     | `Admin123!`      | `firma`    |
-| `marketing@firma.pl` | `Marketing123!`  | `materialy`|
+| E-mail              | Hasło            | Grupa      | Logowanie                    |
+|----------------------|------------------|------------|------------------------------|
+| `admin@firma.pl`     | `Admin123!`      | `firma`    | zakładka „Administrator”     |
+| `marketing@firma.pl` | `Marketing123!`  | `materialy`| zakładka „Użytkownik” (kod)  |
 
 4. Test wysyłki e-maili: Mailpit → `http://127.0.0.1:8025`.
+5. Konto z grupy `materialy` zakłada się skryptem `tools/utworz_uzytkownika.php`
+   (albo przez kod rejestracyjny) – loguje się potem **tylko kodem** z e-maila.
 
 ## 9. Kryteria akceptacji
 
@@ -189,6 +210,10 @@ TestNauka/
 - [x] Kod rejestracyjny jest jednorazowy, wygasa po 15 minutach i nie działa dla innego e-maila.
 - [x] Konto z włączonym wymogiem kodu **nie da się zalogować** bez kodu wysłanego przez
       administratora; po zużyciu kodu wymóg obowiązuje przy każdym kolejnym logowaniu.
+- [x] Strona logowania pozwala wybrać tryb: **Administrator** (e-mail + hasło, tylko grupa
+      `firma`) albo **Użytkownik** (tylko 6-znakowy kod z e-maila, tylko grupa `materialy`).
+- [x] Logowanie kontem grupy `materialy` w trybie „Administrator” jest odrzucane, a kodem
+      w trybie „Użytkownik” – jednorazowe (po użyciu kod przestaje działać).
 
 Status realizacji: **wszystkie kryteria spełnione** — potwierdzone testem integracyjnym
-`php tools/testy.php` (59/59 testów zielonych).
+`php tools/testy.php` (78/78 testów zielonych).

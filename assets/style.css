@@ -368,6 +368,28 @@ select { cursor: pointer; }
 .login-foot { text-align: center; font-size: .84rem; margin: 14px 0 0; }
 .login-foot + .login-foot { margin-top: 4px; }
 
+.login-tabs {
+    display: flex; gap: 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 18px;
+}
+.login-tab {
+    flex: 1;
+    text-align: center;
+    padding: 9px 10px;
+    border-radius: 9px;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--muted);
+    transition: background .15s ease, color .15s ease;
+}
+.login-tab:hover { text-decoration: none; color: var(--text); }
+.login-tab.is-active { background: var(--primary); color: #fff; }
+.login-tab.is-active:hover { color: #fff; }
+
 .page-plain { display: grid; place-items: center; min-height: 100vh; padding: 24px; }
 
 /* ---------------------------------------------------------------- */

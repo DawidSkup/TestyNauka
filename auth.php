@@ -179,6 +179,58 @@ function consume_code(int $userId, string $code, string $cel = 'logowanie'): boo
 }
 
 /**
+ * Znajduje użytkownika po aktywnym kodzie logowania (bez konsumpcji).
+ * Służy do logowania samym kodem z e-maila (tryb „użytkownik”).
+ */
+function user_by_login_code(string $code): ?array
+{
+    $stmt = db()->prepare(
+        'SELECT u.id, u.imie, u.email, u.haslo_hash, u.grupa, u.aktywny, u.aktywowany, u.wymaga_kod
+           FROM kody k
+           JOIN users u ON u.id = k.user_id
+          WHERE k.kod = :k AND k.cel = :c AND k.uzyty_at IS NULL AND k.wygasa_at > :now
+          ORDER BY k.id DESC LIMIT 1'
+    );
+    $stmt->execute([
+        ':k'   => strtoupper(trim($code)),
+        ':c'   => 'logowanie',
+        ':now' => date('Y-m-d H:i:s'),
+    ]);
+
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Konsumuje kod logowania (jednorazowo). Zwraca true, gdy kod był ważny.
+ */
+function consume_login_code(string $code): bool
+{
+    $pdo = db();
+
+    $stmt = $pdo->prepare(
+        'SELECT k.id FROM kody k
+           JOIN users u ON u.id = k.user_id
+          WHERE k.kod = :k AND k.cel = :c AND k.uzyty_at IS NULL AND k.wygasa_at > :now
+          ORDER BY k.id DESC LIMIT 1'
+    );
+    $stmt->execute([
+        ':k'   => strtoupper(trim($code)),
+        ':c'   => 'logowanie',
+        ':now' => date('Y-m-d H:i:s'),
+    ]);
+    $row = $stmt->fetch();
+
+    if (!$row) {
+        return false;
+    }
+
+    $upd = $pdo->prepare('UPDATE kody SET uzyty_at = :now WHERE id = :id AND uzyty_at IS NULL');
+    $upd->execute([':now' => date('Y-m-d H:i:s'), ':id' => (int) $row['id']]);
+
+    return $upd->rowCount() === 1;
+}
+
+/**
  * Generuje 6-znakowy kod i wysyła go e-mailem do wskazanego użytkownika.
  */
 function generate_and_send_code(int $userId, string $cel = 'logowanie'): array

@@ -368,7 +368,9 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
     <h2 class="card-title">Lista użytkowników <span class="muted">(<?= e((string) count($users)) ?>)</span></h2>
     <p class="muted small">
         Konta zakładają sami użytkownicy po otrzymaniu kodu rejestracyjnego.
-        „Generuj i wyślij kod” wysyła dodatkowy kod logowania (2FA) na e-mail konta.
+        „Generuj i wyślij kod” wysyła na e-mail konta kod logowania: użytkownik grupy
+        materiałów loguje się nim samym (zakładka „Użytkownik”), a konto grupy firmy
+        może dodatkowo wymagać kodu przy każdym logowaniu (przycisk „Wymaga kodu”).
     </p>
 
     <div class="table-wrap">
@@ -380,7 +382,7 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
                 <th>Grupa</th>
                 <th>Status</th>
                 <th>Aktywny kod</th>
-                <th>Kod admina</th>
+                <th>Wymóg kodu</th>
                 <th>Slajdy</th>
                 <th class="th-actions">Akcje</th>
             </tr>
@@ -430,6 +432,8 @@ layout_header('Użytkownicy', 'uzytkownicy.php');
                     <td>
                         <?php if ((int) $u['wymaga_kod'] === 1): ?>
                             <span class="badge badge-warn">wymaga kodu</span>
+                        <?php elseif ($u['grupa'] === GROUP_MATERIALY): ?>
+                            <span class="badge badge-ok">logowanie kodem</span>
                         <?php else: ?>
                             <span class="muted small">bez wymogu</span>
                         <?php endif; ?>

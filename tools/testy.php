@@ -102,6 +102,7 @@ function db_scalar(string $sql)
 $r = req('GET', $base . '/login.php');
 $token = csrf($r['html']);
 check('GET /login.php', $r['status'] === 200 && $token !== '');
+check('Strona logowania - wybor trybu', str_contains($r['html'], 'login-tabs'));
 
 $r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'admin@firma.pl', 'haslo' => 'zle']);
 check('Logowanie - zle haslo', str_contains($r['html'], 'Nieprawidłowy e-mail lub hasło'));
@@ -155,7 +156,8 @@ check(
 );
 
 /* ------------------------------------------------------------------ */
-/* 2b. Konto wymagajace kodu wysylanego przez administratora            */
+/* 2b. Logowanie dwoma trybami: administrator (e-mail + haslo)         */
+/*     oraz uzytkownik (tylko kod z e-maila)                           */
 /* ------------------------------------------------------------------ */
 $pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
 $pdoK->prepare(
@@ -172,12 +174,17 @@ $kodowyId = (int) $pdoK->lastInsertId();
 $pdoK = null;
 check('Konto z flaga wymaga_kod utworzone', $kodowyId > 0, "(id=$kodowyId)");
 
-/* Logowanie bez kodu od administratora jest odrzucane */
+/* Konto grupy materialow nie loguje sie e-mailem i haslem */
 @unlink($jar);
 $r = req('GET', $base . '/login.php');
 $token = csrf($r['html']);
-$r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'kodowy@firma.pl', 'haslo' => 'Kodowy123!']);
-check('Logowanie bez kodu admina odrzucone', str_contains($r['html'], 'wymaga kodu weryfikacyjnego'));
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'kodowy@firma.pl', 'haslo' => 'Kodowy123!',
+]);
+check(
+    'Tryb administratora - konto materialow odrzucone',
+    str_contains($r['html'], 'nie ma uprawnień administratora')
+);
 
 $r = req('GET', $base . '/admin/index.php');
 check('Brak dostepu do panelu bez kodu', !str_contains($r['html'], 'Panel startowy'));
@@ -185,13 +192,18 @@ check('Brak dostepu do panelu bez kodu', !str_contains($r['html'], 'Panel starto
 /* Administrator wysyla kod logowania */
 @unlink($jar);
 $pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
-$pdoK->exec("UPDATE kody SET uzyty_at = datetime('now') WHERE cel = 'logowanie' AND uzyty_at IS NULL");
+$pdoK->exec("UPDATE kody SET uzyty_at = datetime('now') WHERE cel = 'logowanie' AND uzyty_at IS NULL AND user_id = 1");
 $pdoK = null;
 
 $r = req('GET', $base . '/login.php');
 $token = csrf($r['html']);
-$r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'admin@firma.pl', 'haslo' => 'Admin123!'], null, false);
-check('Logowanie administratora w sekcji 2b', $r['status'] === 302 && !str_contains((string) $r['head'], 'weryfikacja.php'));
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'admin@firma.pl', 'haslo' => 'Admin123!',
+], null, false);
+check(
+    'Logowanie administratora (tryb admin)',
+    $r['status'] === 302 && !str_contains((string) $r['head'], 'weryfikacja.php')
+);
 
 $r = req('GET', $base . '/admin/uzytkownicy.php');
 check('Panel: znacznik "wymaga kodu"', str_contains($r['html'], 'wymaga kodu'));
@@ -207,67 +219,153 @@ $kodLog = (string) db_scalar(
 );
 check('Kod logowania zapisany', (bool) preg_match('/^[A-Z0-9]{6}$/', $kodLog), "($kodLog)");
 
-/* Logowanie wymaga kodu -> przekierowanie na weryfikacje */
+/* Logowanie samym kodem z e-maila (tryb uzytkownik) */
 @unlink($jar);
-$r = req('GET', $base . '/login.php');
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
 $token = csrf($r['html']);
-$r = req('POST', $base . '/login.php', [
-    'csrf' => $token, 'email' => 'kodowy@firma.pl', 'haslo' => 'Kodowy123!',
-], null, false);
 check(
-    'Logowanie wymaga kodu (przekierowanie na weryfikacje)',
-    $r['status'] === 302 && str_contains((string) $r['head'], 'weryfikacja.php')
+    'Zakladka "Uzytkownik" na stronie logowania',
+    $r['status'] === 200 && str_contains($r['html'], 'Zaloguj się kodem')
 );
 
-$r = req('GET', $base . '/weryfikacja.php');
+$r = req('POST', $base . '/login.php', ['csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => 'ZLYKOD']);
+check('Tryb uzytkownika - bledny kod odrzucony', str_contains($r['html'], 'Kod jest nieprawidłowy lub wygasł'));
+
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
 $token = csrf($r['html']);
-$r = req('POST', $base . '/weryfikacja.php', ['csrf' => $token, 'kod' => $kodLog], null, false);
-check('Weryfikacja kodu - przekierowanie do panelu', $r['status'] === 302);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodLog,
+], null, false);
+check(
+    'Tryb uzytkownika - logowanie kodem',
+    $r['status'] === 302 && !str_contains((string) $r['head'], 'login.php'),
+    '(HTTP ' . $r['status'] . ')'
+);
 
 $r = req('GET', $base . '/admin/index.php');
-check('Panel dostepny po weryfikacji kodu', $r['status'] === 200 && str_contains($r['html'], 'Panel startowy'));
+check('Panel dostepny po zalogowaniu kodem', $r['status'] === 200 && str_contains($r['html'], 'Panel startowy'));
 check(
     'Brak samodzielnego generowania kodu',
     !str_contains($r['html'], 'Generuj i wyślij kod na e-mail')
 );
 
-/* Kod jest jednorazowy - kolejne logowanie znowu wymaga kodu */
+/* Kod logowania jest jednorazowy */
 @unlink($jar);
-$r = req('GET', $base . '/login.php');
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
 $token = csrf($r['html']);
-$r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'kodowy@firma.pl', 'haslo' => 'Kodowy123!']);
-check('Kolejne logowanie wymaga nowego kodu', str_contains($r['html'], 'wymaga kodu weryfikacyjnego'));
+$r = req('POST', $base . '/login.php', ['csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodLog]);
+check('Kod logowania jest jednorazowy', str_contains($r['html'], 'Kod jest nieprawidłowy lub wygasł'));
 
 $pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
 $pdoK->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $kodowyId]);
 $pdoK = null;
 
 /* ------------------------------------------------------------------ */
-/* 3. Uprawnienia grupy materialow                                     */
+/* 2c. Konto administratora z wymogiem kodu (2FA po zalogowaniu)       */
+/* ------------------------------------------------------------------ */
+$pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
+$pdoK->prepare(
+    'INSERT INTO users (imie, email, haslo_hash, grupa, aktywny, aktywowany, wymaga_kod, created_at, updated_at)
+     VALUES (:imie, :email, :haslo, :grupa, 1, 1, 1, :now, :now)'
+)->execute([
+    ':imie'  => 'Kodowy Admin',
+    ':email' => 'kodowyadmin@firma.pl',
+    ':haslo' => password_hash('KodowyAdmin123!', PASSWORD_DEFAULT),
+    ':grupa' => 'firma',
+    ':now'   => date('Y-m-d H:i:s'),
+]);
+$kodowyAdminId = (int) $pdoK->lastInsertId();
+$pdoK = null;
+check('Konto admina z flaga wymaga_kod utworzone', $kodowyAdminId > 0, "(id=$kodowyAdminId)");
+
+/* Logowanie bez kodu od administratora jest odrzucane */
+@unlink($jar);
+$r = req('GET', $base . '/login.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'kodowyadmin@firma.pl', 'haslo' => 'KodowyAdmin123!',
+]);
+check('Logowanie admina bez kodu odrzucone', str_contains($r['html'], 'wymaga kodu weryfikacyjnego'));
+
+/* Administrator (grupa firma) wysyla kod koncie wymagajacemu kodu */
+@unlink($jar);
+$r = req('GET', $base . '/login.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'admin@firma.pl', 'haslo' => 'Admin123!',
+], null, false);
+
+$r = req('GET', $base . '/admin/uzytkownicy.php');
+$token = csrf($r['html']);
+check('Panel: znacznik "wymaga kodu"', str_contains($r['html'], 'wymaga kodu'));
+
+$r = req('POST', $base . '/admin/uzytkownicy.php', [
+    'csrf' => $token, 'akcja' => 'kod', 'user_id' => (string) $kodowyAdminId, 'cel' => 'logowanie',
+]);
+check('Wyslanie kodu koncie admina', str_contains($r['html'], 'wysłany na'));
+
+$kodAdm = (string) db_scalar(
+    "SELECT kod FROM kody WHERE user_id = $kodowyAdminId AND cel = 'logowanie' AND uzyty_at IS NULL ORDER BY id DESC LIMIT 1"
+);
+check('Kod dla konta admina zapisany', (bool) preg_match('/^[A-Z0-9]{6}$/', $kodAdm), "($kodAdm)");
+
+/* Logowanie z kodem -> przekierowanie na weryfikacje */
+@unlink($jar);
+$r = req('GET', $base . '/login.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'kodowyadmin@firma.pl', 'haslo' => 'KodowyAdmin123!',
+], null, false);
+check(
+    'Logowanie admina wymaga kodu (przekierowanie na weryfikacje)',
+    $r['status'] === 302 && str_contains((string) $r['head'], 'weryfikacja.php')
+);
+
+$r = req('GET', $base . '/weryfikacja.php');
+$token = csrf($r['html']);
+check('Ekran weryfikacji kodu', $r['status'] === 200 && str_contains($r['html'], 'input-code'));
+
+$r = req('POST', $base . '/weryfikacja.php', ['csrf' => $token, 'kod' => 'ZLYKOD']);
+check('Weryfikacja - bledny kod', str_contains($r['html'], 'nieprawidłowy lub wygasł'));
+
+$r = req('GET', $base . '/weryfikacja.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/weryfikacja.php', ['csrf' => $token, 'kod' => $kodAdm], null, false);
+check('Weryfikacja - poprawny kod', $r['status'] === 302);
+
+$r = req('GET', $base . '/admin/index.php');
+check('Panel dostepny po weryfikacji kodu', $r['status'] === 200 && str_contains($r['html'], 'Panel startowy'));
+
+$pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
+$pdoK->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $kodowyAdminId]);
+$pdoK = null;
+
+/* ------------------------------------------------------------------ */
+/* 3. Uprawnienia grupy materialow (logowanie samym kodem)              */
 /* ------------------------------------------------------------------ */
 @unlink($jar);
 $r = req('GET', $base . '/login.php');
 $token = csrf($r['html']);
-$r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'marketing@firma.pl', 'haslo' => 'Marketing123!'], null, false);
-$needs2fa = $r['status'] === 302 && str_contains((string) $r['head'], 'weryfikacja.php');
-check('Logowanie - grupa materialy', $r['status'] === 302, $needs2fa ? '(wymaga kodu)' : '');
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'marketing@firma.pl', 'haslo' => 'Marketing123!',
+]);
+check(
+    'Tryb administratora - konto materialow odrzucone',
+    str_contains($r['html'], 'nie ma uprawnień administratora')
+);
 
-if ($needs2fa) {
-    $r = req('GET', $base . '/weryfikacja.php');
-    $token = csrf($r['html']);
-    check('Ekran weryfikacji kodu', $r['status'] === 200 && str_contains($r['html'], 'input-code'));
+$kodMaterialy = (string) db_scalar(
+    "SELECT kod FROM kody WHERE user_id = 2 AND cel = 'logowanie' AND uzyty_at IS NULL ORDER BY id DESC LIMIT 1"
+);
+check('Kod logowania dla konta materialow istnieje', (bool) preg_match('/^[A-Z0-9]{6}$/', $kodMaterialy), "($kodMaterialy)");
 
-    $r = req('POST', $base . '/weryfikacja.php', ['csrf' => $token, 'kod' => 'ZLYKOD']);
-    check('Weryfikacja - bledny kod', str_contains($r['html'], 'nieprawidłowy lub wygasł'));
-
-    $aktywny = trim((string) @shell_exec('php "' . dirname(__DIR__) . '/tools/kody.php"'));
-    preg_match('/kod=([A-Z0-9]{6})/', $aktywny, $m);
-    $prawidlowy = $m[1] ?? '';
-    $r = req('GET', $base . '/weryfikacja.php');
-    $token = csrf($r['html']);
-    $r = req('POST', $base . '/weryfikacja.php', ['csrf' => $token, 'kod' => $prawidlowy], null, false);
-    check('Weryfikacja - poprawny kod', $r['status'] === 302, "($prawidlowy)");
-}
+@unlink($jar);
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodMaterialy,
+], null, false);
+check('Logowanie grupy materialy kodem', $r['status'] === 302, '(HTTP ' . $r['status'] . ')');
 
 $r = req('GET', $base . '/admin/uzytkownicy.php');
 check('Grupa materialy bez dostepu do Uzytkownikow = 403', $r['status'] === 403, '(HTTP ' . $r['status'] . ')');
@@ -333,11 +431,25 @@ check('Formularz bez tokenu CSRF odrzucony', str_contains($r['html'], 'Nieprawid
 /* ------------------------------------------------------------------ */
 $pdo = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
 $pdo->exec("UPDATE kody SET wygasa_at = '2000-01-01 00:00:00' WHERE uzyty_at IS NULL");
+
+/* Wygasly kod nie pozwala zalogowac sie kodem */
+@unlink($jar);
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodMaterialy,
+]);
+check('Wygasly kod nie pozwala zalogowac sie', str_contains($r['html'], 'Kod jest nieprawidłowy lub wygasł'));
+
+/* Konto administratora loguje sie bez kodu */
+@unlink($jar);
 $r = req('GET', $base . '/login.php');
 $token = csrf($r['html']);
-$r = req('POST', $base . '/login.php', ['csrf' => $token, 'email' => 'marketing@firma.pl', 'haslo' => 'Marketing123!'], null, false);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'admin@firma.pl', 'haslo' => 'Admin123!',
+], null, false);
 check(
-    'Wygasly kod nie blokuje logowania',
+    'Wygasly kod nie blokuje logowania administratora',
     $r['status'] === 302 && !str_contains((string) $r['head'], 'weryfikacja.php')
 );
 
@@ -443,15 +555,53 @@ check(
     ) === 1
 );
 
-/* Logowanie nowego uzytkownika (bez 2FA – brak aktywnego kodu logowania) */
+/* Po rejestracji uzytkownik jest zalogowany */
+$r = req('GET', $base . '/admin/index.php');
+check(
+    'Po rejestracji uzytkownik jest zalogowany',
+    $r['status'] === 200 && str_contains($r['html'], 'Panel startowy')
+);
+
+/* Kolejne logowanie nowego uzytkownika: tylko kodem od administratora */
 @unlink($jar);
 $r = req('GET', $base . '/login.php');
 $token = csrf($r['html']);
 $r = req('POST', $base . '/login.php', [
-    'csrf' => $token, 'email' => 'nowy.pracownik@firma.pl', 'haslo' => 'NoweHaslo123',
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'nowy.pracownik@firma.pl', 'haslo' => 'NoweHaslo123',
+]);
+check(
+    'Tryb administratora - nowe konto materialow odrzucone',
+    str_contains($r['html'], 'nie ma uprawnień administratora')
+);
+
+/* Administrator wysyla kod logowania nowemu uzytkownikowi */
+$r = req('GET', $base . '/login.php');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'admin@firma.pl', 'haslo' => 'Admin123!',
 ], null, false);
-$zalogowany = $r['status'] === 302 && !str_contains((string) $r['head'], 'weryfikacja.php');
-check('Logowanie nowego uzytkownika', $zalogowany);
+
+$r = req('GET', $base . '/admin/uzytkownicy.php');
+$token = csrf($r['html']);
+check('Panel: konto materialow loguje sie kodem', str_contains($r['html'], 'logowanie kodem'));
+$r = req('POST', $base . '/admin/uzytkownicy.php', [
+    'csrf' => $token, 'akcja' => 'kod', 'user_id' => (string) $newId, 'cel' => 'logowanie',
+]);
+check('Wyslanie kodu logowania nowemu uzytkownikowi', str_contains($r['html'], 'wysłany na'));
+
+$kodNowego = (string) db_scalar(
+    "SELECT kod FROM kody WHERE user_id = $newId AND cel = 'logowanie' AND uzyty_at IS NULL ORDER BY id DESC LIMIT 1"
+);
+check('Kod dla nowego uzytkownika zapisany', (bool) preg_match('/^[A-Z0-9]{6}$/', $kodNowego), "($kodNowego)");
+
+@unlink($jar);
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodNowego,
+], null, false);
+$zalogowany = $r['status'] === 302 && !str_contains((string) $r['head'], 'login.php');
+check('Logowanie nowego uzytkownika kodem', $zalogowany);
 
 /* Operacje na slajdach: publikacja, kolejnosc, edycja, usuniecie */
 $r = req('GET', $base . '/admin/materialy.php');

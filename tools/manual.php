@@ -77,29 +77,66 @@ echo '4) rejestracja                 : HTTP ' . $r['status']
     . '"' . "\n";
 print_r(blad($r['html']));
 
-// 5. Logowanie nowego uzytkownika
+// 5. Logowanie nowego uzytkownika w trybie administratora – powinno byc odrzucone
 @unlink($jar);
 $r = req('GET', $base . '/login.php', null, true, $jar);
 $t = csrf($r['html']);
 $r = req('POST', $base . '/login.php', [
-    'csrf' => $t, 'email' => $email, 'haslo' => 'Rejestracja123',
+    'csrf' => $t, 'tryb' => 'admin', 'email' => $email, 'haslo' => 'Rejestracja123',
 ], true, $jar);
-echo '5) logowanie nowego konta      : HTTP ' . $r['status']
+echo '5) tryb administratora          : HTTP ' . $r['status']
+    . ' | komunikat="' . (str_contains($r['html'], 'nie ma uprawnień administratora') ? 'odrzucone' : 'PRZESZLO (blad!)')
+    . '"' . "\n";
+print_r(blad($r['html']));
+
+// 6. Administrator wysyla kod logowania, uzytkownik loguje sie samym kodem
+require_once __DIR__ . '/../db.php';
+$pdo = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$stmt = $pdo->prepare('SELECT id FROM users WHERE email = :e');
+$stmt->execute([':e' => $email]);
+$nowyId = (int) ($stmt->fetch()['id'] ?? 0);
+$pdo = null;
+
+@unlink($jar);
+$r = req('GET', $base . '/login.php', null, true, $jar);
+$t = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $t, 'tryb' => 'admin', 'email' => 'admin@mojafirma.pl', 'haslo' => 'TestNauka2026!',
+], true, $jar);
+$r = req('GET', $base . '/admin/uzytkownicy.php', null, true, $jar);
+$t = csrf($r['html']);
+$r = req('POST', $base . '/admin/uzytkownicy.php', [
+    'csrf' => $t, 'akcja' => 'kod', 'user_id' => (string) $nowyId, 'cel' => 'logowanie',
+], true, $jar);
+preg_match('/Kod ([A-Z0-9]{6}) wysłany/', $r['html'], $m);
+$kodLog = $m[1] ?? '';
+echo "6) wyslanie kodu logowania      : HTTP {$r['status']} | kod={$kodLog}\n";
+
+@unlink($jar);
+$r = req('GET', $base . '/login.php?tryb=uzytkownik', null, true, $jar);
+$t = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $t, 'tryb' => 'uzytkownik', 'kod' => $kodLog,
+], true, $jar);
+echo '7) logowanie kodem              : HTTP ' . $r['status']
     . ' | panel="Materiały"=' . (str_contains($r['html'], 'Materiały') ? 'tak' : 'nie')
     . ' | brak menu Uzytkownicy=' . (str_contains($r['html'], 'admin/uzytkownicy.php') ? 'NIE (blad!)' : 'tak')
     . "\n";
 print_r(blad($r['html']));
 
-// 6. Brak dostepu do sekcji Uzytkownicy dla grupy materialow
+// 8. Brak dostepu do sekcji Uzytkownicy dla grupy materialow
 $r = req('GET', $base . '/admin/uzytkownicy.php', null, true, $jar);
-echo '6) sekcja Uzytkownicy (materialy): HTTP ' . $r['status'] . " (oczekiwane 403)\n";
+echo '8) sekcja Uzytkownicy (materialy): HTTP ' . $r['status'] . " (oczekiwane 403)\n";
 
 @unlink($jar);
 
-// 7. Sprzatanie konta testowego
-require_once __DIR__ . '/../db.php';
-db()->prepare('DELETE FROM users WHERE email = :e')->execute([':e' => $email]);
-db()->prepare('DELETE FROM zaproszenia WHERE email = :e')->execute([':e' => $email]);
-echo "7) sprzatanie konta testowego  : {$email}\n";
+// 9. Sprzatanie konta testowego
+$pdo = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$pdo->prepare('DELETE FROM users WHERE email = :e')->execute([':e' => $email]);
+$pdo->prepare('DELETE FROM zaproszenia WHERE email = :e')->execute([':e' => $email]);
+$pdo = null;
+echo "9) sprzatanie konta testowego   : {$email}\n";
 
 @unlink($jar);

@@ -3,7 +3,7 @@
 > Dokument roboczy. Statusy aktualizowane na bieżąco.
 > Legenda: `[x]` zrobione · `[ ]` do zrobienia · `[~]` w trakcie · `[!]` problem/ryzyko
 
-**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona (50/50 testów zielonych)**
+**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona (78/78 testów zielonych)**
 
 ---
 
@@ -43,7 +43,9 @@
 
 ## Faza 3 – Logowanie i weryfikacja kodem ✅
 
-- [x] `login.php` – formularz e-mail + hasło, walidacja, komunikaty błędów
+- [x] `login.php` – **dwa tryby logowania**: zakładka „Administrator” (e-mail + hasło, grupa
+      `firma`) oraz zakładka „Użytkownik” (tylko 6-znakowy kod z e-maila, grupa `materialy`)
+- [x] `login.php` – walidacja, komunikaty błędów, odrzucenie konta z niewłaściwej grupy
 - [x] `logout.php` – zakończenie sesji
 - [x] `weryfikacja.php` – weryfikacja kodu po poprawnym haśle (cel `logowanie`)
 - [x] `aktywacja.php` – aktywacja konta kodem (cel `aktywacja`) + ustawienie hasła
@@ -65,7 +67,8 @@
 - [x] `admin/uzytkownicy.php` – lista zaproszeń: status (oczekuje / wygasłe / wykorzystane),
       ponowna wysyłka kodu, anulowanie zaproszenia
 - [x] `admin/uzytkownicy.php` – zmiana grupy (select z autosave), blokada/wyłączenie konta
-- [x] `admin/uzytkownicy.php` – przełącznik „Wymaga kodu” (konto bez kodu admina się nie zaloguje)
+- [x] `admin/uzytkownicy.php` – przełącznik „Wymaga kodu” (konto grupy firmy bez kodu admina
+      się nie zaloguje); konta grupy materiałów logują się zawsze samym kodem
 - [x] `admin/uzytkownicy.php` – reset hasła przez administratora
 - [x] `admin/uzytkownicy.php` – **przycisk „Generuj i wyślij kod”** per użytkownik
 - [x] `admin/uzytkownicy.php` – wysyłka kodu na e-mail wybranego użytkownika
@@ -105,9 +108,12 @@
 
 ## Faza 9 – Testy i weryfikacja ✅
 
-- [x] `tools/testy.php` – 59 testów integracyjnych na HTTP + bazę
+- [x] `tools/testy.php` – 78 testów integracyjnych na HTTP + bazę
 - [x] Uruchomienie serwera PHP i sprawdzenie braku błędów w logu
 - [x] Test logowania dla obu grup (`admin@firma.pl`, `marketing@firma.pl`)
+- [x] Test wyboru trybu logowania (Administrator = e-mail + hasło, Użytkownik = sam kod)
+- [x] Test odrzucenia konta grupy `materialy` w trybie „Administrator” i odwrotnie
+- [x] Test logowania kodem z e-maila (błędny kod odrzucony, poprawny → panel, jednorazowość)
 - [x] Test blokady: grupa `materialy` nie wchodzi do `admin/uzytkownicy.php` → 403
 - [x] Test przycisku „Generuj i wyślij kod” + odbiór wiadomości w Mailpit
 - [x] Test formatu kodu (6 znaków, wielkie litery + cyfry) – walidacja regexem
@@ -118,8 +124,8 @@
 - [x] Test aktywacji konta kodem + reset hasła
 - [x] Test przepływu „kod rejestracyjny → rejestracja → logowanie” (w tym: administrator
       nie tworzy konta, błędny kod odrzucony, konto aktywne od razu, jednorazowość kodu)
-- [x] Test konta z wymogiem kodu (logowanie bez kodu odrzucone, z kodem → weryfikacja → panel,
-      kolejne logowanie znowu wymaga kodu)
+- [x] Test konta z wymogiem kodu (konto grupy firmy: logowanie bez kodu odrzucone,
+      z kodem → weryfikacja → panel, kolejne logowanie znowu wymaga kodu)
 - [x] Test throttlingu logowania
 - [x] Testy powtarzalne (reset bazy na początku przebiegu)
 
@@ -138,16 +144,16 @@
 | 0. Specyfikacja | ✅ zrobione | `AGENTS.md` |
 | 1. Fundament | ✅ zrobione | `config.php`, `db.php`, `helpers.php` |
 | 2. Sesja i uprawnienia | ✅ zrobione | `auth.php`, `index.php` |
-| 3. Logowanie i kody | ✅ zrobione | login/logout/weryfikacja/aktywacja + throttling |
+| 3. Logowanie i kody | ✅ zrobione | login (dwa tryby)/logout/weryfikacja/aktywacja + throttling |
 | 4. Szkielet panelu | ✅ zrobione | `admin/_layout.php`, dashboard |
 | 5. Użytkownicy | ✅ zrobione | grupa `firma` + przycisk generowania kodu |
 | 6. Materiały (slajdy) | ✅ zrobione | tylko slajdy, upload, kolejność, podgląd |
 | 7. API i JavaScript | ✅ zrobione | `api/kod.php`, `assets/app.js` |
 | 8. Warstwa wizualna | ✅ zrobione | `assets/style.css` |
-| 9. Testy | ✅ zrobione | 59/59 zielonych (`php tools/testy.php`) |
+| 9. Testy | ✅ zrobione | 78/78 zielonych (`php tools/testy.php`) |
 | 10. Dokumentacja | ✅ zrobione | `README.md`, `AGENTS.md`, `plan.md` |
 
-**Wykonano:** 102 / 102 zadań
+**Wykonano:** 107 / 107 zadań
 
 ## Znalezione i naprawione błędy
 
@@ -168,3 +174,6 @@
 8. **Kod logowania był właściwością chwilową** – doszedł flag `users.wymaga_kod`: konto
    z włączonym wymogiem nie loguje się bez kodu wysłanego przez administratora (także po
    zużyciu poprzedniego kodu), a użytkownik nie może wygenerować kodu samodzielnie.
+9. **Logowanie jednym formularzem** – strona logowania ma teraz dwa tryby: „Administrator”
+   (e-mail + hasło, grupa `firma`) i „Użytkownik” (tylko 6-znakowy kod z e-maila, grupa
+   `materialy`); konto z niewłaściwej grupy jest odrzucane czytelnym komunikatem.
