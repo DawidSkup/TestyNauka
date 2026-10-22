@@ -29,7 +29,14 @@ function fmt_remaining(?string $iso): string
     if (!$iso) {
         return '—';
     }
-    $diff = strtotime($iso) - time();
+    $ts = strtotime($iso);
+    if ($ts === false) {
+        return '—';
+    }
+    if (code_is_permanent($iso)) {
+        return 'bezterminowo';
+    }
+    $diff = $ts - time();
     if ($diff <= 0) {
         return 'wygasł';
     }
@@ -193,6 +200,25 @@ function generate_code(int $length = CODE_LENGTH): string
     return $kod;
 }
 
+/**
+ * Data ważności kodu stałego (bezterminowego) – używana dla kodów logowania
+ * kont, które nie wymagają ponownego generowania kodu.
+ */
+function permanent_code_expiry(): string
+{
+    return '9999-12-31 23:59:59';
+}
+
+/** Czy podana data ważności oznacza kod stały (bezterminowy)? */
+function code_is_permanent(?string $wygasaAt): bool
+{
+    if ($wygasaAt === null || $wygasaAt === '') {
+        return false;
+    }
+    $ts = strtotime($wygasaAt);
+    return $ts !== false && $ts >= strtotime('9000-01-01');
+}
+
 /* ------------------------------------------------------------------ */
 /* Wysyłka e-mail                                                      */
 /* ------------------------------------------------------------------ */
@@ -238,16 +264,17 @@ function email_template(
     string $paragraph,
     string $code = '',
     ?string $link = null,
-    string $linkText = 'Przejdź do panelu'
+    string $linkText = 'Przejdź do panelu',
+    ?string $codeNote = null
 ): string {
     $codeBlock = '';
     if ($code !== '') {
+        $note = $codeNote ?? ('Kod jest ważny ' . CODE_TTL_MINUTES . ' minut i może zostać użyty tylko raz.');
         $codeBlock = '<p style="margin:24px 0;text-align:center;">'
             . '<span style="display:inline-block;padding:14px 28px;font-size:30px;letter-spacing:8px;'
             . 'font-family:Consolas,Menlo,monospace;font-weight:bold;background:#f1f5f9;color:#0f172a;'
             . 'border:1px solid #cbd5e1;border-radius:12px;">' . e($code) . '</span></p>'
-            . '<p style="text-align:center;color:#64748b;font-size:13px;">'
-            . 'Kod jest ważny ' . CODE_TTL_MINUTES . ' minut i może zostać użyty tylko raz.</p>';
+            . '<p style="text-align:center;color:#64748b;font-size:13px;">' . e($note) . '</p>';
     }
 
     $linkBlock = '';

@@ -61,13 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'nieudane_logowanie_kod',
                     'kod=' . $kod
                 );
-            } elseif ($user['grupa'] === GROUP_FIRMA) {
-                $error = 'To konto administratora – zaloguj się w zakładce „Administrator” (e-mail i hasło).';
             } elseif ((int) $user['aktywny'] !== 1) {
                 $error = 'Konto zostało zablokowane. Skontaktuj się z administratorem.';
-            } elseif ((int) $user['aktywowany'] !== 1) {
+            } elseif ((int) $user['aktywowany'] !== 1 && $user['grupa'] === GROUP_FIRMA) {
+                // Konta użytkowników nie wymagają aktywacji – działają od razu.
                 $error = 'Konto nie zostało jeszcze aktywowane.';
-            } elseif (!consume_login_code($kod)) {
+            } elseif ($user['grupa'] === GROUP_FIRMA && !consume_login_code($kod)) {
+                // Kod administratora jest jednorazowy; kod użytkownika działa wielokrotnie.
                 $error = login_fail(
                     'Kod jest nieprawidłowy lub wygasł. Poproś administratora o nowy kod.',
                     'nieudane_logowanie_kod',
@@ -181,8 +181,9 @@ $flashes = flash_take();
         </form>
 
         <p class="login-foot muted">
-            Kod wysyła administrator na Twój adres e-mail. Jest ważny 15 minut
-            i można go użyć tylko raz.
+            Kod wysyła administrator na Twój adres e-mail. Kod użytkownika jest stały –
+            możesz logować się nim wielokrotnie (nowy kod unieważnia poprzedni).
+            Kod administratora jest jednorazowy i wygasa po <?= e((string) CODE_TTL_MINUTES) ?> minutach.
         </p>
         <p class="login-foot"><a href="<?= e(app_url('rejestracja.php')) ?>">Załóż konto kodem rejestracyjnym</a></p>
     <?php else: ?>
@@ -201,6 +202,7 @@ $flashes = flash_take();
 
         <p class="login-foot muted">
             Konta użytkowników logują się samym kodem z e-maila – zakładka „Użytkownik”.
+            Kodem można też zalogować konto administratora (kod wysyła grupa firmy).
         </p>
         <p class="login-foot"><a href="<?= e(app_url('rejestracja.php')) ?>">Załóż konto kodem rejestracyjnym</a></p>
         <p class="login-foot"><a href="<?= e(app_url('aktywacja.php')) ?>">Aktywuj konto kodem</a></p>

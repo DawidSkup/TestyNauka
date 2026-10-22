@@ -106,7 +106,9 @@ $flashes = flash_take();
     </form>
 
     <p class="login-foot muted">
-        Kod jest ważny 15 minut i może zostać użyty tylko raz.
+        Kod rejestracyjny jest ważny 15 minut i można założyć nim konto tylko raz.
+        Po założeniu konta ten sam kod staje się stałym kodem logowania – nie wygasa
+        i możesz używać go przy każdym logowaniu.
     </p>
     <p class="login-foot"><a href="<?= e(app_url('login.php')) ?>">Wróć do logowania</a></p>
 </div>

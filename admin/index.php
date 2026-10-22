@@ -7,22 +7,53 @@ require_login();
 
 $user = current_user();
 
-/* --- Obsługa akcji: wyślij kod na własny e-mail (self-service) --------- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['akcja'] ?? '') === 'moj_kod') {
+/* --- Obsługa akcji: wyślij kod na e-mail ------------------------------- */
+$akcja = (string) ($_POST['akcja'] ?? '');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($akcja, ['moj_kod', 'kod_email'], true)) {
     csrf_require($_POST['csrf'] ?? null);
 
-    if (user_requires_code($user)) {
-        flash('warning', 'Twoje konto wymaga kodu wysyłanego przez administratora – nie możesz wygenerować go samodzielnie.');
-        redirect(app_url('admin/index.php'));
+    if ($akcja === 'moj_kod') {
+        /* Kod na własny adres (self-service). */
+        if (user_requires_code($user)) {
+            flash('warning', 'Twoje konto wymaga kodu wysyłanego przez administratora – nie możesz wygenerować go samodzielnie.');
+            redirect(app_url('admin/index.php'));
+        }
+
+        $wynik = generate_and_send_code((int) $user['id'], 'logowanie');
+    } else {
+        /* Kod na dowolny adres – tylko grupa firmy. */
+        if (!in_group(GROUP_FIRMA)) {
+            flash('error', 'Tylko grupa firmy może wysyłać kod na inny adres e-mail.');
+            redirect(app_url('admin/index.php'));
+        }
+
+        $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
+
+        // Konto z wymogiem kodu nie może samo wygenerować sobie kodu.
+        if (user_requires_code($user) && $email === mb_strtolower((string) $user['email'])) {
+            flash('warning', 'Twoje konto wymaga kodu wysyłanego przez innego administratora.');
+            redirect(app_url('admin/index.php'));
+        }
+
+        try {
+            $wynik = generate_and_send_code_for_email($email, 'logowanie');
+        } catch (Throwable $ex) {
+            flash('error', $ex->getMessage());
+            redirect(app_url('admin/index.php'));
+        }
     }
 
-    $wynik = generate_and_send_code((int) $user['id'], 'logowanie');
+    $grupa = GROUPS[$wynik['grupa'] ?? $user['grupa']] ?? ($wynik['grupa'] ?? $user['grupa']);
+    $waznosc = code_is_permanent((string) $wynik['wygasa_at'])
+        ? 'kod stały – działa przy każdym logowaniu'
+        : 'ważny do ' . fmt_date($wynik['wygasa_at']);
 
     if ($wynik['wyslany']) {
-        flash('success', 'Kod ' . $wynik['kod'] . ' został wysłany na adres ' . $wynik['email'] . '.');
+        flash('success', 'Kod ' . $wynik['kod'] . ' został wysłany na adres ' . $wynik['email']
+            . ' (' . $grupa . ', ' . $waznosc . '). Odbiorca zaloguje się nim w zakładce „Użytkownik”.');
     } else {
-        flash('warning', 'Nie udało się wysłać e-maila. Kod to ' . $wynik['kod'] . ' (ważny do '
-            . fmt_date($wynik['wygasa_at']) . ').');
+        flash('warning', 'Nie udało się wysłać e-maila. Kod to ' . $wynik['kod'] . ' (' . $waznosc . ').');
     }
 
     redirect(app_url('admin/index.php'));
@@ -86,11 +117,6 @@ layout_header('Panel startowy', 'index.php');
             </p>
             <p class="muted small">Nie możesz wygenerować kodu samodzielnie.</p>
         <?php else: ?>
-            <p class="muted">
-                Wygeneruj 6-znakowy kod (wielkie litery i cyfry) i wyślij go na swój adres e-mail.
-                Kod będzie wymagany przy następnym logowaniu.
-            </p>
-
             <?php if ($mojKod): ?>
                 <div class="code-box">
                     <span class="code-label">Twój aktywny kod</span>
@@ -101,6 +127,32 @@ layout_header('Panel startowy', 'index.php');
             <?php else: ?>
                 <p class="muted small">Brak aktywnego kodu.</p>
             <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if (in_group(GROUP_FIRMA)): ?>
+            <p class="muted">
+                Wygeneruj 6-znakowy kod (wielkie litery i cyfry) i wyślij go na e-mail wybranego
+                konta – administratora albo użytkownika. Odbiorca zaloguje się nim w zakładce
+                „Użytkownik”. Kod jest ważny <?= e((string) CODE_TTL_MINUTES) ?> minut i działa raz.
+            </p>
+
+            <form method="post" class="form-grid">
+                <?= csrf_field() ?>
+                <input type="hidden" name="akcja" value="kod_email">
+                <div>
+                    <label for="kod_email">E-mail odbiorcy</label>
+                    <input type="email" id="kod_email" name="email" required
+                           value="<?= e($user['email']) ?>" placeholder="np. jan.kowalski@firma.pl">
+                </div>
+                <div class="form-grid-actions">
+                    <button type="submit" class="btn btn-primary">Wyślij kod na e-mail</button>
+                </div>
+            </form>
+        <?php elseif (!user_requires_code($user)): ?>
+            <p class="muted">
+                Wygeneruj 6-znakowy kod (wielkie litery i cyfry) i wyślij go na swój adres e-mail.
+                Kod będzie wymagany przy następnym logowaniu.
+            </p>
 
             <form method="post" class="form-inline">
                 <?= csrf_field() ?>

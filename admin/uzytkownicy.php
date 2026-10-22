@@ -108,11 +108,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ->execute([':n' => date('Y-m-d H:i:s'), ':id' => $id]);
             }
 
+            $waznosc = code_is_permanent((string) $wynik['wygasa_at'])
+                ? 'kod stały – działa przy każdym logowaniu'
+                : 'ważny do ' . fmt_date($wynik['wygasa_at']);
+
             $info  = $wynik['wyslany']
-                ? 'Kod ' . $wynik['kod'] . ' wysłany na ' . $wynik['email'] . ' (ważny do '
-                    . fmt_date($wynik['wygasa_at']) . ').'
-                : 'Nie udało się wysłać e-maila. Kod ' . $wynik['kod'] . ' (ważny do '
-                    . fmt_date($wynik['wygasa_at']) . ').';
+                ? 'Kod ' . $wynik['kod'] . ' wysłany na ' . $wynik['email'] . ' (' . $waznosc . ').'
+                : 'Nie udało się wysłać e-maila. Kod ' . $wynik['kod'] . ' (' . $waznosc . ').';
 
             flash($wynik['wyslany'] ? 'success' : 'warning', $info);
         } catch (Throwable $ex) {

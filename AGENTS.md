@@ -16,11 +16,11 @@ Na stronie logowania użytkownik **wybiera sposób logowania** (dwie zakładki):
 | Zakładka        | Kto się loguje       | Jakie dane                          | Jak działa                                                              |
 |-----------------|-----------------------|-------------------------------------|-------------------------------------------------------------------------|
 | **Administrator**| grupa `firma`        | e-mail + hasło                      | sesja z regeneracją ID; przy koncie z flagą `wymaga_kod` dodatkowo kod   |
-| **Użytkownik**  | grupa `materialy`    | **tylko 6-znakowy kod z e-maila**   | kod jest jedynym poświadczeniem – konsumowany przy logowaniu            |
+| **Użytkownik**  | grupa `materialy` lub `firma` | **tylko 6-znakowy kod z e-maila**   | kod jest jedynym poświadczeniem – konsumowany przy logowaniu            |
 
 - Logowanie w zakładce „Administrator” kontem z grupy `materialy` jest **odrzucone**
-  (komunikat: „To konto nie ma uprawnień administratora…”), a kod z zakładki „Użytkownik”
-  nie loguje konta grupy `firma` (komunikat: „To konto administratora…”).
+  (komunikat: „To konto nie ma uprawnień administratora…”); kod z zakładki „Użytkownik”
+  loguje **oba typy kont** – użytkownika i administratora.
 - Kod w zakładce „Użytkownik” musi być **aktywnym, niewykorzystanym i niewygasłym** kodem
   o celu `logowanie` w bazie; po poprawnym użyciu jest oznaczany jako zużyty (jednorazowy).
 - Wylogowanie kasuje sesję; po zalogowaniu hasłem konto z flagą `wymaga_kod` trafia
@@ -88,7 +88,9 @@ Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na kla
 ## 4. Generowanie i wysyłka kodu na e-mail
 
 - **Przycisk „Generuj i wyślij kod”** w sekcji `Użytkownicy` (dla wybranego konta)
-  oraz w panelu startowym (wysyłka kodu na własny adres e-mail).
+  oraz w panelu startowym: grupa firmy wpisuje **e-mail odbiorcy** (domyślnie własny)
+  i wysyła kod na konto administratora albo użytkownika; pozostałe grupy mogą wygenerować
+  kod wyłącznie na własny adres.
 - **Przycisk „Generuj kod i wyślij”** w sekcji `Użytkownicy` dla **nowego** e-maila –
   wysyła kod rejestracyjny (cel `rejestracja`) pozwalający odbiorcy założyć konto.
 - **Format kodu:** 6 znaków – **wielkie litery (A–Z) oraz cyfry (0–9)**, losowo generowany
@@ -104,7 +106,7 @@ Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na kla
   administratora logowanie jest **odrzucone** – użytkownik widzi komunikat, że musi poprosić
   administratora o kod. Po użyciu kodu (jest jednorazowy) kolejne logowanie znowu wymaga
   nowego kodu od administratora. Konto z tym wymogiem nie może samo wygenerować sobie kodu
-  (przycisk na panelu startowym jest ukryty i odrzucany po stronie serwera).
+  (formularz na panelu startowym odrzuca własny adres, a grupa `materialy` nie ma przycisku).
   Konta grupy `materialy` mają wymóg kodu zawsze – logują się samym kodem z e-maila.
 - **Wysyłka:** e-mail HTML z tematem i treścią w UTF-8; informacja o błędzie wysyłki
   zapisywana w tabeli `log`. Kod jest jednorazowy – po poprawnym użyciu oznaczany jako zużyty.
@@ -213,9 +215,12 @@ TestNauka/
 - [x] Konto z włączonym wymogiem kodu **nie da się zalogować** bez kodu wysłanego przez
       administratora; po zużyciu kodu wymóg obowiązuje przy każdym kolejnym logowaniu.
 - [x] Strona logowania pozwala wybrać tryb: **Administrator** (e-mail + hasło, tylko grupa
-      `firma`) albo **Użytkownik** (tylko 6-znakowy kod z e-maila, tylko grupa `materialy`).
-- [x] Logowanie kontem grupy `materialy` w trybie „Administrator” jest odrzucane, a kodem
-      w trybie „Użytkownik” – jednorazowe (po użyciu kod przestaje działać).
+      `firma`) albo **Użytkownik** (tylko 6-znakowy kod z e-maila, grupa `materialy`
+      i `firma`).
+- [x] Logowanie kontem grupy `materialy` w trybie „Administrator” jest odrzucane, a kod
+      w trybie „Użytkownik” loguje oba typy kont i jest jednorazowy (po użyciu przestaje działać).
+- [x] Panel startowy pozwala wysłać kod na e-mail wskazanego konta (administratora lub
+      użytkownika); odbiorca loguje się nim w zakładce „Użytkownik”.
 
 - [x] Lista kont w sekcji `Użytkownicy` jest podzielona na **„Administratorzy”** (grupa `firma`)
       i **„Użytkownicy”** (grupa `materialy`); zmiana grupy przenosi konto między listami.

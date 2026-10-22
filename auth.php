@@ -116,15 +116,24 @@ function logout_user(): void
 
 /**
  * Tworzy nowy kod (6 znaków) dla użytkownika i unieważnia poprzednie.
+ * Kod logowania kont nie-administracyjnych jest stały (bezterminowy) –
+ * można logować się nim wielokrotnie, dopóki administrator nie wyda nowego.
  */
 function create_code(int $userId, string $cel = 'logowanie'): array
 {
     $pdo = db();
+
+    $stmt = $pdo->prepare('SELECT grupa FROM users WHERE id = :id');
+    $stmt->execute([':id' => $userId]);
+    $grupa = (string) ($stmt->fetchColumn() ?: GROUP_MATERIALY);
+
     $pdo->prepare('UPDATE kody SET uzyty_at = :now WHERE user_id = :u AND cel = :c AND uzyty_at IS NULL')
         ->execute([':now' => date('Y-m-d H:i:s'), ':u' => $userId, ':c' => $cel]);
 
     $kod = generate_code();
-    $wygasa = date('Y-m-d H:i:s', time() + CODE_TTL_MINUTES * 60);
+    $wygasa = ($cel === 'logowanie' && $grupa !== GROUP_FIRMA)
+        ? permanent_code_expiry()
+        : date('Y-m-d H:i:s', time() + CODE_TTL_MINUTES * 60);
 
     $stmt = $pdo->prepare(
         'INSERT INTO kody (user_id, kod, cel, wygasa_at, wyslany_at, created_at)
@@ -244,6 +253,7 @@ function generate_and_send_code(int $userId, string $cel = 'logowanie'): array
     }
 
     $data = create_code($userId, $cel);
+    $staly = $cel === 'logowanie' && code_is_permanent((string) $data['wygasa_at']);
 
     $subject = $cel === 'aktywacja'
         ? 'Kod aktywacyjny konta – ' . APP_NAME
@@ -252,13 +262,24 @@ function generate_and_send_code(int $userId, string $cel = 'logowanie'): array
     $tresc = $cel === 'aktywacja'
         ? 'Otrzymujesz kod aktywacyjny konta w panelu ' . APP_NAME . '. '
             . 'Wpisz go na stronie aktywacji i ustaw nowe hasło.'
-        : 'Otrzymujesz kod weryfikacyjny do panelu ' . APP_NAME . '. '
-            . 'Kod jest wymagany przy następnym logowaniu.';
+        : ($staly
+            ? 'Otrzymujesz stały kod dostępu do panelu ' . APP_NAME . '. '
+                . 'Możesz logować się nim wielokrotnie – kod nie wygasa i nie jest jednorazowy. '
+                . 'Nowy kod wydany przez administratora unieważnia poprzedni.'
+            : 'Otrzymujesz kod weryfikacyjny do panelu ' . APP_NAME . '. '
+                . 'Kod jest wymagany przy następnym logowaniu.');
 
     $wyslany = send_email(
         (string) $user['email'],
         $subject,
-        email_template($subject, $tresc, $data['kod'])
+        email_template(
+            $subject,
+            $tresc,
+            $data['kod'],
+            null,
+            'Przejdź do panelu',
+            $staly ? 'Kod jest stały – możesz używać go przy każdym logowaniu.' : null
+        )
     );
 
     log_action(
@@ -274,6 +295,39 @@ function generate_and_send_code(int $userId, string $cel = 'logowanie'): array
         'wyslany'   => $wyslany,
         'cel'       => $cel,
     ];
+}
+
+/**
+ * Generuje i wysyła kod na wskazany adres e-mail istniejącego konta
+ * (administratora albo użytkownika). Rzuca RuntimeException z komunikatem
+ * dla administratora, gdy konto nie istnieje, jest zablokowane lub nieaktywowane.
+ */
+function generate_and_send_code_for_email(string $email, string $cel = 'logowanie'): array
+{
+    $email = mb_strtolower(trim($email));
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new RuntimeException('Podaj poprawny adres e-mail.');
+    }
+
+    $stmt = db()->prepare('SELECT * FROM users WHERE email = :e');
+    $stmt->execute([':e' => $email]);
+    $odbiorca = $stmt->fetch();
+
+    if (!$odbiorca) {
+        throw new RuntimeException('Nie znaleziono konta o adresie ' . $email . '.');
+    }
+    if ((int) $odbiorca['aktywny'] !== 1) {
+        throw new RuntimeException('Konto ' . $email . ' jest zablokowane – odblokuj je, aby wysłać kod.');
+    }
+    if ((int) $odbiorca['aktywowany'] !== 1 && (string) $odbiorca['grupa'] === GROUP_FIRMA) {
+        // Konta użytkowników nie wymagają aktywacji – kod działa od razu.
+        throw new RuntimeException('Konto ' . $email . ' nie zostało jeszcze aktywowane.');
+    }
+
+    $wynik = generate_and_send_code((int) $odbiorca['id'], $cel);
+
+    return $wynik + ['grupa' => (string) $odbiorca['grupa']];
 }
 
 /* ------------------------------------------------------------------ */
@@ -345,7 +399,10 @@ function generate_and_send_invitation(string $email, string $grupa = GROUP_MATER
     $link    = app_absolute_url('rejestracja.php');
     $tresc   = 'Otrzymujesz kod rejestracyjny do panelu ' . APP_NAME . '. '
         . 'Wejdź na adres ' . $link . ', wpisz ten adres e-mail oraz kod i ustal hasło. '
-        . 'Konto powstanie w grupie: ' . (GROUPS[$data['grupa']] ?? $data['grupa']) . '.';
+        . 'Konto powstanie w grupie: ' . (GROUPS[$data['grupa']] ?? $data['grupa']) . '.'
+        . ($data['grupa'] === GROUP_FIRMA
+            ? ''
+            : ' Po założeniu konta ten sam kod posłuży do logowania w zakładce „Użytkownik” – będzie działał wielokrotnie.');
 
     $wyslany = send_email(
         $email,
@@ -437,6 +494,22 @@ function register_from_invitation(string $email, string $kod, string $imie, stri
         ]);
 
         $newId = (int) $pdo->lastInsertId();
+
+        // Kod rejestracyjny staje się stałym kodem logowania użytkownika –
+        // te same znaki działają przy każdym kolejnym logowaniu.
+        if ($grupa !== GROUP_FIRMA) {
+            $pdo->prepare(
+                'INSERT INTO kody (user_id, kod, cel, wygasa_at, wyslany_at, created_at)
+                 VALUES (:u, :k, :c, :w, :n, :n)'
+            )->execute([
+                ':u' => $newId,
+                ':k' => strtoupper(trim($kod)),
+                ':c' => 'logowanie',
+                ':w' => permanent_code_expiry(),
+                ':n' => $now,
+            ]);
+        }
+
         $pdo->commit();
     } catch (Throwable $ex) {
         if ($pdo->inTransaction()) {

@@ -143,6 +143,43 @@ check(
     str_contains($r['html'], 'został wysłany na adres')
 );
 
+/* Panel startowy: kod na wskazany adres (administrator albo użytkownik) */
+$r = req('GET', $base . '/admin/index.php');
+$token = csrf($r['html']);
+check('Panel startowy - formularz kodu na e-mail', str_contains($r['html'], 'Wyślij kod na e-mail'));
+
+$r = req('POST', $base . '/admin/index.php', [
+    'csrf' => $token, 'akcja' => 'kod_email', 'email' => 'admin@firma.pl',
+]);
+check(
+    'Panel startowy - kod wyslany na wskazany e-mail',
+    str_contains($r['html'], 'wysłany na adres')
+);
+
+$kodAdmin = (string) db_scalar(
+    "SELECT kod FROM kody WHERE user_id = 1 AND cel = 'logowanie' AND uzyty_at IS NULL ORDER BY id DESC LIMIT 1"
+);
+check('Panel startowy - kod dla konta administratora', (bool) preg_match('/^[A-Z0-9]{6}$/', $kodAdmin), "($kodAdmin)");
+
+/* Kod z panelu loguje konto administratora w zakladce "Uzytkownik" */
+@unlink($jar);
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodAdmin,
+], null, false);
+check(
+    'Administrator loguje sie kodem z e-maila',
+    $r['status'] === 302 && !str_contains((string) $r['head'], 'login.php'),
+    '(HTTP ' . $r['status'] . ')'
+);
+
+$r = req('GET', $base . '/admin/index.php');
+check(
+    'Panel administratora po zalogowaniu kodem',
+    $r['status'] === 200 && str_contains($r['html'], 'Zarządzaj użytkownikami')
+);
+
 $r = req('GET', $base . '/admin/uzytkownicy.php');
 check('Sekcja Użytkownicy dla grupy firma', $r['status'] === 200 && str_contains($r['html'], 'Generuj i wyślij kod'));
 check(
@@ -277,12 +314,40 @@ check(
     !str_contains($r['html'], 'Generuj i wyślij kod na e-mail')
 );
 
-/* Kod logowania jest jednorazowy */
+/* Grupa materialow nie moze wyslac kodu na inny adres */
+$r = req('POST', $base . '/admin/index.php', [
+    'csrf' => $token, 'akcja' => 'kod_email', 'email' => 'admin@firma.pl',
+]);
+check(
+    'Grupa materialow nie wysle kodu na inny e-mail',
+    str_contains($r['html'], 'Tylko grupa firmy'),
+    'HTTP ' . $r['status'] . ' | ' . mb_substr(preg_replace('/\s+/', ' ', strip_tags($r['html'])) ?? '', 0, 300)
+);
+
+/* Kod użytkownika jest stały – działa wielokrotnie, nie wymaga aktywacji */
 @unlink($jar);
 $r = req('GET', $base . '/login.php?tryb=uzytkownik');
 $token = csrf($r['html']);
-$r = req('POST', $base . '/login.php', ['csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodLog]);
-check('Kod logowania jest jednorazowy', str_contains($r['html'], 'Kod jest nieprawidłowy lub wygasł'));
+$r = req('POST', $base . '/login.php', ['csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodLog], null, false);
+check(
+    'Ten sam kod użytkownika działa wielokrotnie',
+    $r['status'] === 302 && !str_contains((string) $r['head'], 'login.php'),
+    '(HTTP ' . $r['status'] . ')'
+);
+
+@unlink($jar);
+$pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
+$pdoK->prepare('UPDATE users SET aktywowany = 0 WHERE id = :id')->execute([':id' => $kodowyId]);
+$pdoK = null;
+
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', ['csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodLog], null, false);
+check(
+    'Użytkownik nie musi aktywować konta – logowanie kodem bez aktywacji',
+    $r['status'] === 302 && !str_contains((string) $r['head'], 'login.php'),
+    '(HTTP ' . $r['status'] . ')'
+);
 
 $pdoK = new PDO('sqlite:' . dirname(__DIR__) . '/data/app.sqlite');
 $pdoK->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $kodowyId]);
@@ -630,6 +695,19 @@ $r = req('POST', $base . '/login.php', [
 ], null, false);
 $zalogowany = $r['status'] === 302 && !str_contains((string) $r['head'], 'login.php');
 check('Logowanie nowego uzytkownika kodem', $zalogowany);
+
+/* Ten sam kod rejestracyjny działa jako stały kod logowania */
+@unlink($jar);
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
+$token = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'uzytkownik', 'kod' => $kodRej,
+], null, false);
+check(
+    'Kod rejestracyjny staje się stałym kodem logowania',
+    $r['status'] === 302 && !str_contains((string) $r['head'], 'login.php'),
+    '(HTTP ' . $r['status'] . ')'
+);
 
 /* Operacje na slajdach: publikacja, kolejnosc, edycja, usuniecie */
 $r = req('GET', $base . '/admin/materialy.php');
