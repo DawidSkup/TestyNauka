@@ -274,7 +274,9 @@ function render_tabela_kont(array $lista, array $biezacy): void
                 <th>E-mail</th>
                 <th>Grupa</th>
                 <th>Status</th>
+                <?php if ((int) $biezacy['grupa'] === GROUP_FIRMA): ?>
                 <th>Aktywny kod</th>
+                <?php endif; ?>
                 <th>Wymóg kodu</th>
                 <th>Slajdy</th>
                 <th class="th-actions">Akcje</th>
@@ -315,6 +317,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                             <span class="badge badge-warn">nieaktywowane</span>
                         <?php endif; ?>
                     </td>
+                    <?php if ((int) $biezacy['grupa'] === GROUP_FIRMA): ?>
                     <td>
                         <?php if (!empty($u['aktywny_kod'])): ?>
                             <span class="code-inline"><?= e($u['aktywny_kod']) ?></span>
@@ -322,6 +325,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                             <span class="muted">—</span>
                         <?php endif; ?>
                     </td>
+                    <?php endif; ?>
                     <td>
                         <?php if ((int) $u['wymaga_kod'] === 1): ?>
                             <span class="badge badge-warn">wymaga kodu</span>
