@@ -65,25 +65,13 @@ function user_requires_code(?array $user): bool
     return $user !== null && (int) ($user['wymaga_kod'] ?? 0) === 1;
 }
 
-/** Wymusza zalogowanie + przynależność do grupy (403 gdy brak uprawnień). */
+/** Wymusza zalogowanie + przynależność do grupy. */
 function require_group(string ...$groups): void
 {
     require_login();
     if (!in_group(...$groups)) {
-        http_response_code(403);
-        $dozwolone = implode(', ', array_map(
-            static fn (string $g): string => GROUPS[$g] ?? $g,
-            $groups
-        ));
-        echo '<!doctype html><html lang="pl"><head><meta charset="utf-8">'
-            . '<title>403 – brak uprawnień</title>'
-            . '<link rel="stylesheet" href="../assets/style.css"></head>'
-            . '<body class="page-plain"><div class="card card-narrow">'
-            . '<h1>403 – brak uprawnień</h1>'
-            . '<p>Ta sekcja jest dostępna wyłącznie dla: <strong>' . e($dozwolone) . '</strong>.</p>'
-            . '<a class="btn" href="index.php">Wróć do panelu</a>'
-            . '</div></body></html>';
-        exit;
+        flash('warning', 'Brak uprawnień do tej sekcji.');
+        redirect(app_url('admin/index.php'));
     }
 }
 
