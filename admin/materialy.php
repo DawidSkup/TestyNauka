@@ -105,8 +105,7 @@ $slajdy = $pdo->query(
      ORDER BY s.kolejnosc ASC, s.id ASC'
 )->fetchAll();
 
-$tylkoSzkice = ($_GET['status'] ?? '') === 'szkic';
-if ($tylkoSzkice) {
+if (in_group(GROUP_FIRMA) && ($_GET['status'] ?? '') === 'szkic') {
     $slajdy = array_values(array_filter($slajdy, static fn (array $s): bool => $s['status'] === 'szkic'));
 }
 
