@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $opis = trim((string) ($_POST['opis'] ?? ''));
 
         if ($tytul === '') {
-            flash_set('error', 'Tytuł testu jest wymagany.');
+            flash('error', 'Tytuł testu jest wymagany.');
             header('Location: ' . app_url('admin/testy.php'));
             exit;
         }
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare('INSERT INTO testy (tytul, opis, status, autor_id, created_at, updated_at) VALUES (:tytul, :opis, "szkic", :autor_id, :now, :now)');
         $stmt->execute([':tytul' => $tytul, ':opis' => $opis, ':autor_id' => (int) $user['id'], ':now' => $now]);
         $newId = (int) $pdo->lastInsertId();
-        flash_set('success', 'Test dodany.');
+        flash('success', 'Test dodany.');
         header('Location: ' . app_url('admin/testy.php?akcja=edytuj&test_id=' . $newId));
         exit;
     }
