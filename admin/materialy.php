@@ -119,7 +119,9 @@ layout_header('Materiały (slajdy)', 'materialy.php');
         Dokumenty (PDF, DOCX, XLSX) nie są obsługiwane.
     </p>
     <div class="page-toolbar-actions">
-        <a class="btn btn-ghost btn-sm" href="?status=szkic">Tylko szkice</a>
+        <?php if (in_group(GROUP_FIRMA)): ?>
+            <a class="btn btn-ghost btn-sm" href="?status=szkic">Tylko szkice</a>
+        <?php endif; ?>
         <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/podglad.php')) ?>">Podgląd</a>
         <?php if (in_group(GROUP_FIRMA)): ?>
             <a class="btn btn-primary btn-sm" href="<?= e(app_url('admin/slajd_form.php')) ?>">+ Dodaj slajd</a>
