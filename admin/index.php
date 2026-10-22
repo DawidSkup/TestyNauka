@@ -78,6 +78,51 @@ $mojKod = active_code((int) $user['id'], 'logowanie');
 
 $ostatnie = $pdo->query('SELECT * FROM log ORDER BY id DESC LIMIT 8')->fetchAll();
 
+/* Dla użytkownika widoczny tylko kod weryfikacyjny i grupa */
+if ((string) $user['grupa'] === GROUP_MATERIALY) {
+    layout_header('Panel startowy', 'index.php');
+    ?>
+    <section class="grid grid-2">
+        <div class="card">
+            <h2 class="card-title">Twoja grupa</h2>
+            <p class="stat-value stat-value-sm"><?= e(GROUPS[$user['grupa']] ?? $user['grupa']) ?></p>
+            <p class="muted"><?= e($user['email']) ?></p>
+            <p class="muted small">Dostęp tylko do podglądu slajdów.</p>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Kod weryfikacyjny</h2>
+
+            <?php if (user_requires_code($user)): ?>
+                <p class="muted">
+                    Twoje konto wymaga kodu wysyłanego przez administratora – poproś grupę firmy
+                    o wygenerowanie kodu.
+                </p>
+                <p class="muted small">Nie możesz wygenerować kodu samodzielnie.</p>
+            <?php else: ?>
+                <?php if ($mojKod): ?>
+                    <div class="code-box">
+                        <span class="code-label">Twój kod weryfikacyjny</span>
+                        <span class="code-value" id="myCode"><?= e($mojKod['kod']) ?></span>
+                        <span class="muted small">Kod jest stały – działa przy każdym logowaniu</span>
+                        <button class="btn btn-ghost btn-sm" type="button" data-copy="#myCode">Kopiuj kod</button>
+                    </div>
+                <?php else: ?>
+                    <p class="muted small">Brak aktywnego kodu.</p>
+                    <form method="post" class="form-inline">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="akcja" value="moj_kod">
+                        <button type="submit" class="btn btn-primary">Generuj i wyślij kod na e-mail</button>
+                    </form>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+    </section>
+    <?php
+    layout_footer();
+    exit;
+}
+
 layout_header('Panel startowy', 'index.php');
 ?>
 
