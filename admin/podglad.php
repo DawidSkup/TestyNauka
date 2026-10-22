@@ -37,7 +37,10 @@ $uklady = [
     <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/materialy.php')) ?>">← Panel</a>
     <span class="preview-title">Podgląd slajdów</span>
     <span class="preview-counter" id="previewCounter">0 / 0</span>
-    <a class="btn btn-ghost btn-sm" href="?status=wszystkie">Pokaż też szkice</a>
+    <?php if (in_group(GROUP_FIRMA)): ?>
+        <a class="btn btn-ghost btn-sm" href="?status=wszystkie">Pokaż też szkice</a>
+    <?php endif; ?>
+    <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/testy.php')) ?>">Testy</a>
 </header>
 
 <?php if (!$slajdy): ?>

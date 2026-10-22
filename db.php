@@ -122,6 +122,54 @@ function db_migrate(PDO $pdo): void
     SQL);
 
     $pdo->exec(<<<'SQL'
+        CREATE TABLE IF NOT EXISTS testy (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            tytul       TEXT    NOT NULL,
+            opis        TEXT    NOT NULL DEFAULT '',
+            status      TEXT    NOT NULL DEFAULT 'szkic',
+            autor_id    INTEGER,
+            created_at  TEXT    NOT NULL,
+            updated_at  TEXT    NOT NULL,
+            FOREIGN KEY (autor_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+    SQL);
+
+    $pdo->exec(<<<'SQL'
+        CREATE TABLE IF NOT EXISTS pytania (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            test_id     INTEGER NOT NULL,
+            tresc       TEXT    NOT NULL,
+            kolejnosc   INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (test_id) REFERENCES testy(id) ON DELETE CASCADE
+        )
+    SQL);
+
+    $pdo->exec(<<<'SQL'
+        CREATE TABLE IF NOT EXISTS odpowiedzi (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            pytanie_id  INTEGER NOT NULL,
+            tresc       TEXT    NOT NULL,
+            poprawna    INTEGER NOT NULL DEFAULT 0,
+            kolejnosc   INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (pytanie_id) REFERENCES pytania(id) ON DELETE CASCADE
+        )
+    SQL);
+
+    $pdo->exec(<<<'SQL'
+        CREATE TABLE IF NOT EXISTS wyniki_testow (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL,
+            test_id     INTEGER NOT NULL,
+            wynik       INTEGER NOT NULL DEFAULT 0,
+            maks        INTEGER NOT NULL DEFAULT 0,
+            procent     REAL    NOT NULL DEFAULT 0,
+            created_at  TEXT    NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (test_id) REFERENCES testy(id) ON DELETE CASCADE
+        )
+    SQL);
+
+    $pdo->exec(<<<'SQL'
         CREATE TABLE IF NOT EXISTS log (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id     INTEGER,
