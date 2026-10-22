@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/_layout.php';
 
 require_login();
+require_group(GROUP_FIRMA);
 
 $pdo = db();
 $user = current_user();

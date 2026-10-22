@@ -41,5 +41,5 @@ const GROUP_MATERIALY = 'materialy';
 
 const GROUPS = [
     GROUP_FIRMA     => 'Grupa firmy',
-    GROUP_MATERIALY => 'Grupa materiałów (slajdy)',
+    GROUP_MATERIALY => 'Użytkownik',
 ];
