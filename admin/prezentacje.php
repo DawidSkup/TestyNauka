@@ -209,7 +209,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $view = 'lista';
 $prezentacja = null;
 $slajdyPrezentacji = [];
-$dostepneSlajdy = [];
 $prezentacje = [];
 
 if ($akcja === 'edytuj' && $prezentacjaId > 0) {
@@ -234,16 +233,6 @@ if ($akcja === 'edytuj' && $prezentacjaId > 0) {
     );
     $stmt->execute([':id' => $prezentacjaId]);
     $slajdyPrezentacji = $stmt->fetchAll();
-
-    $stmt = $pdo->prepare(
-        'SELECT s.*, u.imie AS autor
-         FROM slajdy s
-         LEFT JOIN users u ON u.id = s.autor_id
-         WHERE s.id NOT IN (SELECT slajd_id FROM prezentacje_slajdy WHERE prezentacja_id = :id)
-         ORDER BY s.kolejnosc ASC, s.id ASC'
-    );
-    $stmt->execute([':id' => $prezentacjaId]);
-    $dostepneSlajdy = $stmt->fetchAll();
 
     $view = 'edycja';
 } else {
@@ -312,11 +301,6 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
                 </span>
             </span>
             <span class="stat-hint"><?= $prezentacja['status'] === 'opublikowany' ? 'widoczna dla użytkowników' : 'ukryta przed użytkownikami' ?></span>
-        </div>
-        <div class="card stat">
-            <span class="stat-label">Dostępne slajdy</span>
-            <span class="stat-value"><?= count($dostepneSlajdy) ?></span>
-            <span class="stat-hint">można jeszcze dodać</span>
         </div>
     </section>
 
@@ -432,58 +416,6 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
                     </tbody>
                 </table>
             </div>
-        <?php endif; ?>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <div>
-                <h2 class="card-title">Dodaj slajdy z materiałów</h2>
-                <p class="card-subtitle">Zaznacz slajdy, które mają pojawić się w tej prezentacji.</p>
-            </div>
-        </div>
-
-        <?php if ($dostepneSlajdy === []): ?>
-            <p class="muted">Wszystkie dostępne slajdy są już w tej prezentacji. Możesz dodać nowy slajd przyciskiem powyżej.</p>
-        <?php else: ?>
-            <form method="post" action="<?= e(app_url('admin/prezentacje.php')) ?>">
-                <?= csrf_field() ?>
-                <input type="hidden" name="akcja" value="dodaj_slajdy">
-                <input type="hidden" name="prezentacja_id" value="<?= (int) $prezentacja['id'] ?>">
-
-                <div class="table-wrap">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th class="th-check"><input type="checkbox" data-check-all aria-label="Zaznacz wszystkie"></th>
-                                <th>Slajd</th>
-                                <th>Układ</th>
-                                <th>Status</th>
-                                <th>Autor</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($dostepneSlajdy as $s): ?>
-                                <tr>
-                                    <td><input type="checkbox" name="slajd_ids[]" value="<?= (int) $s['id'] ?>" data-check-item aria-label="Wybierz slajd"></td>
-                                    <td><strong><?= e($s['tytul']) ?></strong></td>
-                                    <td class="muted small"><?= e($s['uklad']) ?></td>
-                                    <td>
-                                        <span class="badge <?= $s['status'] === 'opublikowany' ? 'badge-ok' : 'badge-warn' ?>">
-                                            <?= $s['status'] === 'opublikowany' ? 'opublikowany' : 'szkic' ?>
-                                        </span>
-                                    </td>
-                                    <td><?= e($s['autor'] ?? '—') ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="form-actions">
-                    <button class="btn btn-primary" type="submit">+ Dodaj zaznaczone slajdy</button>
-                </div>
-            </form>
         <?php endif; ?>
     </div>
 
