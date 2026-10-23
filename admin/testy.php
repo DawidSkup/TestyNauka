@@ -21,14 +21,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'dodaj_test') {
         require_group(GROUP_FIRMA);
-        $tytul = trim((string) ($_POST['tytul'] ?? ''));
         $opis = trim((string) ($_POST['opis'] ?? ''));
 
-        if ($tytul === '') {
-            $stmt = $pdo->query('SELECT COALESCE(MAX(CAST(SUBSTR(tytul, INSTR(tytul, " ") + 1) AS INTEGER)), 0) + 1 FROM testy WHERE tytul LIKE "Test %"');
-            $nextNum = (int) $stmt->fetchColumn();
-            $tytul = 'Test ' . $nextNum;
+        if ($opis === '') {
+            flash('error', 'Opis testu jest wymagany.');
+            redirect(app_url('admin/testy.php'));
         }
+
+        $stmt = $pdo->query('SELECT COALESCE(MAX(CAST(SUBSTR(tytul, INSTR(tytul, " ") + 1) AS INTEGER)), 0) + 1 FROM testy WHERE tytul LIKE "Test %"');
+        $nextNum = (int) $stmt->fetchColumn();
+        $tytul = 'Test ' . $nextNum;
 
         $stmt = $pdo->prepare('INSERT INTO testy (tytul, opis, status, autor_id, created_at, updated_at) VALUES (:tytul, :opis, "szkic", :autor_id, :now, :now)');
         $stmt->execute([':tytul' => $tytul, ':opis' => $opis, ':autor_id' => (int) $user['id'], ':now' => $now]);
@@ -39,20 +41,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'edytuj_test') {
         require_group(GROUP_FIRMA);
-        $tytul = trim((string) ($_POST['tytul'] ?? ''));
         $opis = trim((string) ($_POST['opis'] ?? ''));
         $status = $_POST['status'] ?? 'szkic';
         if (!in_array($status, ['szkic', 'opublikowany'], true)) {
             $status = 'szkic';
         }
 
-        if ($tytul === '') {
-            flash('error', 'Tytuł testu jest wymagany.');
+        if ($opis === '') {
+            flash('error', 'Opis testu jest wymagany.');
             redirect(app_url('admin/testy.php?akcja=edytuj&test_id=' . $testId));
         }
 
-        $stmt = $pdo->prepare('UPDATE testy SET tytul = :tytul, opis = :opis, status = :status, updated_at = :now WHERE id = :id');
-        $stmt->execute([':tytul' => $tytul, ':opis' => $opis, ':status' => $status, ':now' => $now, ':id' => $testId]);
+        $stmt = $pdo->prepare('UPDATE testy SET opis = :opis, status = :status, updated_at = :now WHERE id = :id');
+        $stmt->execute([':opis' => $opis, ':status' => $status, ':now' => $now, ':id' => $testId]);
         flash('success', $status === 'opublikowany'
             ? 'Test zaktualizowany i opublikowany – jest już widoczny dla użytkowników.'
             : 'Test zaktualizowany. Pozostaje szkicem – użytkownicy go nie widzą.');
@@ -296,6 +297,7 @@ foreach ($testy as $t) {
     }
     $statPytania += (int) $t['liczba_pytan'];
 }
+$statWszystkie = count($testy);
 
 layout_header('Testy', 'testy.php');
 ?>
@@ -344,7 +346,7 @@ layout_header('Testy', 'testy.php');
         <div class="card-header">
             <div>
                 <h2 class="card-title">Ustawienia testu</h2>
-                <p class="card-subtitle">Nazwa, opis i widoczność. Test staje się dostępny po ustawieniu statusu „Opublikowany”.</p>
+                <p class="card-subtitle">Opis i widoczność. Tytuł jest nadawany automatycznie i nie można go zmienić.</p>
             </div>
         </div>
         <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="form-grid">
@@ -353,8 +355,8 @@ layout_header('Testy', 'testy.php');
             <input type="hidden" name="test_id" value="<?= (int) $test['id'] ?>">
 
             <label class="form-field">
-                <span>Tytuł testu <em class="req">*</em></span>
-                <input type="text" name="tytul" value="<?= e($test['tytul']) ?>" required>
+                <span>Tytuł (automatyczny)</span>
+                <input type="text" value="<?= e($test['tytul']) ?>" readonly style="background: var(--surface-2); color: var(--muted);">
             </label>
 
             <label class="form-field">
@@ -366,8 +368,8 @@ layout_header('Testy', 'testy.php');
             </label>
 
             <label class="form-field form-field-full">
-                <span>Opis</span>
-                <textarea name="opis" placeholder="Krótki opis testu widoczny na liście"><?= e($test['opis']) ?></textarea>
+                <span>Opis <em class="req">*</em></span>
+                <textarea name="opis" placeholder="Krótki opis testu widoczny na liście" required><?= e($test['opis']) ?></textarea>
             </label>
 
             <div class="form-actions">
@@ -681,13 +683,13 @@ layout_header('Testy', 'testy.php');
                 <input type="hidden" name="akcja" value="dodaj_test">
 
                 <label class="form-field">
-                    <span>Tytuł testu</span>
-                    <input type="text" name="tytul" placeholder="np. Test z materiału – umowy (puste = automatycznie „Test 1”)">
+                    <span>Tytuł (automatyczny)</span>
+                    <input type="text" value="Test <?= (int) $statWszystkie + 1 ?>" readonly style="background: var(--surface-2); color: var(--muted);">
                 </label>
 
                 <label class="form-field form-field-full">
-                    <span>Opis</span>
-                    <textarea name="opis" placeholder="Krótki opis testu widoczny na liście obok tytułu"></textarea>
+                    <span>Opis <em class="req">*</em></span>
+                    <textarea name="opis" placeholder="Krótki opis testu widoczny na liście obok tytułu" required></textarea>
                 </label>
 
                 <div class="form-actions">

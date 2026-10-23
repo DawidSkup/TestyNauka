@@ -21,14 +21,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_group(GROUP_FIRMA);
 
     if ($akcja === 'dodaj') {
-        $tytul = trim((string) ($_POST['tytul'] ?? ''));
         $opis = trim((string) ($_POST['opis'] ?? ''));
 
-        if ($tytul === '') {
-            $stmt = $pdo->query('SELECT COALESCE(MAX(CAST(SUBSTR(tytul, INSTR(tytul, " ") + 1) AS INTEGER)), 0) + 1 FROM prezentacje WHERE tytul LIKE "Prezentacja %"');
-            $nextNum = (int) $stmt->fetchColumn();
-            $tytul = 'Prezentacja ' . $nextNum;
+        if ($opis === '') {
+            flash('error', 'Opis prezentacji jest wymagany.');
+            redirect(app_url('admin/prezentacje.php'));
         }
+
+        $stmt = $pdo->query('SELECT COALESCE(MAX(CAST(SUBSTR(tytul, INSTR(tytul, " ") + 1) AS INTEGER)), 0) + 1 FROM prezentacje WHERE tytul LIKE "Prezentacja %"');
+        $nextNum = (int) $stmt->fetchColumn();
+        $tytul = 'Prezentacja ' . $nextNum;
 
         $stmt = $pdo->prepare(
             'INSERT INTO prezentacje (tytul, opis, status, autor_id, created_at, updated_at)
@@ -48,7 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($akcja === 'edytuj') {
-        $tytul = trim((string) ($_POST['tytul'] ?? ''));
         $opis = trim((string) ($_POST['opis'] ?? ''));
         $status = (string) ($_POST['status'] ?? 'szkic');
 
@@ -56,25 +57,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $status = 'szkic';
         }
 
-        if ($prezentacjaId <= 0 || $tytul === '') {
-            flash('error', 'Tytuł prezentacji jest wymagany.');
-            redirect(app_url('admin/prezentacje.php'));
+        if ($prezentacjaId <= 0 || $opis === '') {
+            flash('error', 'Opis prezentacji jest wymagany.');
+            redirect(app_url('admin/prezentacje.php?akcja=edytuj&id=' . $prezentacjaId));
         }
 
         $stmt = $pdo->prepare(
             'UPDATE prezentacje
-             SET tytul = :tytul, opis = :opis, status = :status, updated_at = :now
+             SET opis = :opis, status = :status, updated_at = :now
              WHERE id = :id'
         );
         $stmt->execute([
-            ':tytul'  => $tytul,
             ':opis'   => $opis,
             ':status' => $status,
             ':now'    => $now,
             ':id'     => $prezentacjaId,
         ]);
 
-        log_action('zaktualizowano_prezentacje', $tytul, (int) $user['id']);
+        log_action('zaktualizowano_prezentacje', 'id=' . $prezentacjaId, (int) $user['id']);
         flash('success', $status === 'opublikowany'
             ? 'Prezentacja zaktualizowana i opublikowana.'
             : 'Prezentacja zaktualizowana. Pozostaje szkicem.');
@@ -324,7 +324,7 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
         <div class="card-header">
             <div>
                 <h2 class="card-title">Ustawienia prezentacji</h2>
-                <p class="card-subtitle">Tytuł, opis i widoczność. Prezentacja staje się dostępna po opublikowaniu.</p>
+                <p class="card-subtitle">Opis i widoczność. Tytuł jest nadawany automatycznie i nie można go zmienić.</p>
             </div>
         </div>
         <form method="post" action="<?= e(app_url('admin/prezentacje.php')) ?>" class="form-grid">
@@ -333,8 +333,8 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
             <input type="hidden" name="prezentacja_id" value="<?= (int) $prezentacja['id'] ?>">
 
             <label class="form-field">
-                <span>Tytuł prezentacji <em class="req">*</em></span>
-                <input type="text" name="tytul" value="<?= e($prezentacja['tytul']) ?>" required>
+                <span>Tytuł (automatyczny)</span>
+                <input type="text" value="<?= e($prezentacja['tytul']) ?>" readonly style="background: var(--surface-2); color: var(--muted);">
             </label>
 
             <label class="form-field">
@@ -346,8 +346,8 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
             </label>
 
             <label class="form-field form-field-full">
-                <span>Opis</span>
-                <textarea name="opis" placeholder="Krótki opis prezentacji widoczny na liście"><?= e($prezentacja['opis']) ?></textarea>
+                <span>Opis <em class="req">*</em></span>
+                <textarea name="opis" placeholder="Krótki opis prezentacji widoczny na liście" required><?= e($prezentacja['opis']) ?></textarea>
             </label>
 
             <div class="form-actions">
@@ -535,13 +535,13 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
                 <input type="hidden" name="akcja" value="dodaj">
 
                 <label class="form-field">
-                    <span>Tytuł prezentacji</span>
-                    <input type="text" name="tytul" placeholder="np. Szkolenie BHP – wprowadzenie (puste = automatycznie „Prezentacja 1”)">
+                    <span>Tytuł (automatyczny)</span>
+                    <input type="text" value="Prezentacja <?= (int) $statWszystkie + 1 ?>" readonly style="background: var(--surface-2); color: var(--muted);">
                 </label>
 
                 <label class="form-field form-field-full">
-                    <span>Opis</span>
-                    <textarea name="opis" placeholder="Krótki opis prezentacji widoczny na liście"></textarea>
+                    <span>Opis <em class="req">*</em></span>
+                    <textarea name="opis" placeholder="Krótki opis prezentacji widoczny na liście" required></textarea>
                 </label>
 
                 <div class="form-actions">
