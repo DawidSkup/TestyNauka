@@ -187,14 +187,16 @@
         /* Pełny ekran */
         function updateFullscreenButton() {
             if (!fsBtn) return;
-            const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+            const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+            const isFs = !!fsElement;
             fsBtn.textContent = isFs ? '⛶' : '⛶';
             fsBtn.setAttribute('aria-label', isFs ? 'Wyjdź z pełnego ekranu' : 'Pełny ekran');
             fsBtn.title = isFs ? 'Wyjdź z pełnego ekranu' : 'Pełny ekran (F)';
         }
 
         function toggleFullscreen() {
-            const elem = document.documentElement;
+            const elem = document.querySelector('.page-preview');
+            if (!elem) return;
             if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
                 if (elem.requestFullscreen) {
                     elem.requestFullscreen().catch(function () { /* ignoruj */ });
