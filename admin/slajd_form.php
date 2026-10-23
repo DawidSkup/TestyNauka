@@ -44,7 +44,7 @@ $values = [
     'uklad'    => $slajd['uklad'] ?? 'tekst-obraz',
     'przycisk' => $slajd['przycisk'] ?? '',
     'link'     => $slajd['link'] ?? '',
-    'status'   => $slajd['status'] ?? 'szkic',
+    'status'   => $slajd['status'] ?? 'opublikowany',
     'obraz'    => $slajd['obraz'] ?? '',
 ];
 
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $values['uklad']    = (string) ($_POST['uklad'] ?? 'tekst-obraz');
     $values['przycisk'] = trim((string) ($_POST['przycisk'] ?? ''));
     $values['link']     = trim((string) ($_POST['link'] ?? ''));
-    $values['status']   = (string) ($_POST['status'] ?? 'szkic');
+    $values['status']   = (string) ($_POST['status'] ?? 'opublikowany');
 
     if (!isset($UKLADY[$values['uklad']])) {
         $values['uklad'] = 'tekst-obraz';
