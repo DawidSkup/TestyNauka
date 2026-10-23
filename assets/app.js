@@ -108,6 +108,43 @@
     }
 
     /* ---------------------------------------------------------------- */
+    /* Rozwiązywanie testu – postęp i ostrzeżenie o brakujących          */
+    /* ---------------------------------------------------------------- */
+    const testForm = document.querySelector('form[data-test-progress]');
+    if (testForm) {
+        const total = parseInt(testForm.getAttribute('data-test-progress'), 10) || 0;
+        const bar = document.getElementById('testProgressBar');
+        const label = document.getElementById('testProgressLabel');
+
+        function answeredCount() {
+            return testForm.querySelectorAll('input[data-answer]:checked').length;
+        }
+
+        function updateTestProgress() {
+            const answered = answeredCount();
+            if (bar) bar.style.width = (total > 0 ? (answered / total) * 100 : 0) + '%';
+            if (label) label.textContent = answered + ' / ' + total + ' odpowiedzi';
+        }
+
+        testForm.querySelectorAll('input[data-answer]').forEach(function (input) {
+            input.addEventListener('change', function () {
+                const card = input.closest('.question-solve');
+                if (card) card.classList.add('is-answered');
+                updateTestProgress();
+            });
+        });
+
+        testForm.addEventListener('submit', function (ev) {
+            const missing = total - answeredCount();
+            if (missing > 0 && !window.confirm('Nie odpowiedziano na ' + missing + ' z ' + total + ' pytań. Zakończyć test mimo to?')) {
+                ev.preventDefault();
+            }
+        });
+
+        updateTestProgress();
+    }
+
+    /* ---------------------------------------------------------------- */
     /* Podgląd slajdów – nawigacja                                      */
     /* ---------------------------------------------------------------- */
     const stage = document.getElementById('previewStage');

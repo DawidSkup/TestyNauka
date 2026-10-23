@@ -812,6 +812,99 @@ check('Poprawne haslo odrzucone podczas blokady', str_contains($r['html'], 'Zbyt
 @unlink($txt);
 @unlink($big);
 
+/* ------------------------------------------------------------------ */
+/* 9. Testy: dodawanie testu (regresja przycisku „Dodaj test”)         */
+/* ------------------------------------------------------------------ */
+@unlink($jar);
+$r = req('GET', $base . '/login.php');
+$token = csrf($r['html']);
+req('POST', $base . '/login.php', [
+    'csrf' => $token, 'tryb' => 'admin', 'email' => 'admin@firma.pl', 'haslo' => 'Admin123!',
+], null, false);
+
+$r = req('GET', $base . '/admin/testy.php');
+check(
+    'Testy: formularz dodawania testu',
+    $r['status'] === 200 && str_contains($r['html'], 'Nowy test') && str_contains($r['html'], 'Utwórz test'),
+    '(HTTP ' . $r['status'] . ')'
+);
+check('Testy: lista bez bledow PHP', blad_php($r['html']) === '', blad_php($r['html']));
+$token = csrf($r['html']);
+
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'dodaj_test', 'tytul' => 'Test automatyczny', 'opis' => 'Opis testu',
+]);
+check(
+    'Testy: dodanie testu',
+    str_contains($r['html'], 'Ustawienia testu') && str_contains($r['html'], 'Dodaj pytanie') && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+
+$testId = (int) db_scalar("SELECT id FROM testy WHERE tytul = 'Test automatyczny' ORDER BY id DESC LIMIT 1");
+check('Testy: rekord testu w bazie', $testId > 0, "(id=$testId)");
+check('Testy: nowy test ma status szkic', (string) db_scalar('SELECT status FROM testy WHERE id = ' . $testId) === 'szkic');
+
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'dodaj_test', 'tytul' => '   ',
+]);
+check('Testy: pusty tytul odrzucony', str_contains($r['html'], 'Tytuł testu jest wymagany'));
+
+$r = req('POST', $base . '/admin/testy.php', ['akcja' => 'dodaj_test', 'tytul' => 'Bez tokenu']);
+check(
+    'Testy: formularz bez tokenu CSRF odrzucony',
+    $r['status'] === 400 && str_contains($r['html'], 'Nieprawidłowy token CSRF'),
+    '(HTTP ' . $r['status'] . ')'
+);
+
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'dodaj_pytanie', 'test_id' => (string) $testId, 'tresc' => 'Pytanie testowe?',
+]);
+check(
+    'Testy: dodanie pytania',
+    str_contains($r['html'], 'Pytanie testowe?') && str_contains($r['html'], 'Pytania w teście') && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+
+$pytanieId = (int) db_scalar('SELECT id FROM pytania WHERE test_id = ' . $testId . ' ORDER BY id DESC LIMIT 1');
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'dodaj_odpowiedz', 'test_id' => (string) $testId,
+    'pytanie_id' => (string) $pytanieId, 'tresc' => 'Odpowiedz A', 'poprawna' => 'on',
+]);
+check(
+    'Testy: dodanie odpowiedzi',
+    str_contains($r['html'], 'Odpowiedz A') && str_contains($r['html'], 'poprawna') && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+$odpowiedzId = (int) db_scalar('SELECT id FROM odpowiedzi WHERE pytanie_id = ' . $pytanieId . ' ORDER BY id DESC LIMIT 1');
+check(
+    'Testy: odpowiedz oznaczona jako poprawna',
+    (int) db_scalar('SELECT poprawna FROM odpowiedzi WHERE id = ' . $odpowiedzId) === 1
+);
+
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'edytuj_test', 'test_id' => (string) $testId,
+    'tytul' => 'Test automatyczny', 'opis' => 'Opis testu', 'status' => 'opublikowany',
+]);
+check(
+    'Testy: publikacja testu',
+    str_contains($r['html'], 'jest już widoczny') && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'rozwiaz', 'test_id' => (string) $testId,
+    'odpowiedz[' . $pytanieId . ']' => (string) $odpowiedzId,
+]);
+check(
+    'Testy: strona wyniku po rozwiazaniu',
+    str_contains($r['html'], 'Wynik testu') && str_contains($r['html'], '100% poprawnych') && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+check(
+    'Testy: wynik zapisany w bazie',
+    (int) db_scalar('SELECT wynik FROM wyniki_testow WHERE test_id = ' . $testId . ' ORDER BY id DESC LIMIT 1') === 1
+);
+
 echo "\n";
 echo 'ZALICZONE : ' . $wynik['ok'] . "\n";
 echo 'BLEDY     : ' . $wynik['blad'] . "\n";
