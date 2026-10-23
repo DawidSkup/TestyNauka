@@ -120,6 +120,41 @@
     }
 
     /* ---------------------------------------------------------------- */
+    /* Modale (dialog)                                                  */
+    /* ---------------------------------------------------------------- */
+    document.querySelectorAll('[data-modal-open]').forEach(function (trigger) {
+        trigger.addEventListener('click', function () {
+            const selector = trigger.getAttribute('data-modal-open');
+            const modal = document.querySelector(selector);
+            if (modal && typeof modal.showModal === 'function') {
+                modal.showModal();
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-modal-close]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const modal = btn.closest('dialog');
+            if (modal) modal.close();
+        });
+    });
+
+    document.querySelectorAll('dialog').forEach(function (modal) {
+        modal.addEventListener('click', function (ev) {
+            const rect = modal.getBoundingClientRect();
+            const isInDialog = ev.clientX >= rect.left && ev.clientX <= rect.right &&
+                               ev.clientY >= rect.top && ev.clientY <= rect.bottom;
+            if (!isInDialog) modal.close();
+        });
+    });
+
+    document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') {
+            document.querySelectorAll('dialog[open]').forEach(function (m) { m.close(); });
+        }
+    });
+
+    /* ---------------------------------------------------------------- */
     /* Rozwiązywanie testu – postęp i ostrzeżenie o brakujących          */
     /* ---------------------------------------------------------------- */
     const testForm = document.querySelector('form[data-test-progress]');

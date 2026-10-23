@@ -381,35 +381,21 @@ layout_header('Testy', 'testy.php');
     <div class="card">
         <div class="card-header">
             <div>
-                <h2 class="card-title">Dodaj pytanie</h2>
-                <p class="card-subtitle">Wpisz treść pytania i od razu dodaj do niego odpowiedzi.</p>
+                <h2 class="card-title">Pytania w teście <span class="badge"><?= $liczbaPytan ?></span></h2>
+                <p class="card-subtitle">Kliknij przycisk poniżej, aby dodać nowe pytanie w oknie modalnym.</p>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn btn-primary" data-modal-open="#modalDodajPytanie">+ Dodaj pytanie</button>
             </div>
         </div>
-        <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="form-grid question-create-form">
-            <?= csrf_field() ?>
-            <input type="hidden" name="akcja" value="dodaj_pytanie">
-            <input type="hidden" name="test_id" value="<?= (int) $test['id'] ?>">
 
-            <label class="form-field form-field-full">
-                <span>Treść pytania <em class="req">*</em></span>
-                <textarea name="tresc" rows="2" placeholder="np. Który dokument potwierdza zawarcie umowy?" required></textarea>
-            </label>
-
-            <div class="form-actions">
-                <button class="btn btn-primary" type="submit">+ Dodaj pytanie</button>
+        <?php if ($pytania === []): ?>
+            <div class="card card-empty">
+                <p><strong>Ten test nie ma jeszcze pytań.</strong></p>
+                <p class="muted">Dodaj pierwsze pytanie przyciskiem powyżej, a potem przypisz do niego odpowiedzi.</p>
             </div>
-        </form>
-    </div>
-
-    <?php if ($pytania === []): ?>
-        <div class="card card-empty">
-            <p><strong>Ten test nie ma jeszcze pytań.</strong></p>
-            <p class="muted">Dodaj pierwsze pytanie powyżej, a potem przypisz do niego odpowiedzi.</p>
-        </div>
-    <?php else: ?>
-        <h2 class="section-title">Pytania w teście <span class="badge"><?= $liczbaPytan ?></span></h2>
-
-        <div class="question-list">
+        <?php else: ?>
+            <div class="question-list">
             <?php foreach ($pytania as $idx => $pyt): ?>
                 <?php
                 $pytId = (int) $pyt['id'];
@@ -500,6 +486,32 @@ layout_header('Testy', 'testy.php');
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
+
+    <!-- Modal: Dodaj pytanie -->
+    <dialog id="modalDodajPytanie" class="modal">
+        <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="modal-content">
+            <?= csrf_field() ?>
+            <input type="hidden" name="akcja" value="dodaj_pytanie">
+            <input type="hidden" name="test_id" value="<?= (int) $test['id'] ?>">
+
+            <header class="modal-header">
+                <h3>Nowe pytanie</h3>
+                <button type="button" class="modal-close" data-modal-close aria-label="Zamknij">&times;</button>
+            </header>
+
+            <div class="modal-body">
+                <label class="form-field form-field-full">
+                    <span>Treść pytania <em class="req">*</em></span>
+                    <textarea name="tresc" rows="3" placeholder="np. Który dokument potwierdza zawarcie umowy?" required></textarea>
+                </label>
+            </div>
+
+            <footer class="modal-footer">
+                <button type="button" class="btn btn-ghost" data-modal-close>Anuluj</button>
+                <button type="submit" class="btn btn-primary">+ Dodaj pytanie</button>
+            </footer>
+        </form>
+    </dialog>
 
 <?php elseif ($view === 'rozwiaz'): ?>
     <?php $liczbaPytan = count($pytania); ?>
