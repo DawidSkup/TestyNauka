@@ -122,15 +122,28 @@
     /* ---------------------------------------------------------------- */
     /* Modale (dialog)                                                  */
     /* ---------------------------------------------------------------- */
+    window.openModal = function (modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal && typeof modal.showModal === 'function') {
+            console.log('[Modal] openModal() otwieram:', modalId);
+            modal.showModal();
+        } else {
+            console.warn('[Modal] openModal() nie znaleziono:', modalId, modal);
+        }
+    };
+
     function initModals() {
+        console.log('[Modal] Inicjalizacja modali...');
         document.querySelectorAll('[data-modal-open]').forEach(function (trigger) {
             trigger.addEventListener('click', function () {
                 const selector = trigger.getAttribute('data-modal-open');
+                console.log('[Modal] Kliknięto trigger:', selector);
                 const modal = document.querySelector(selector);
                 if (modal && typeof modal.showModal === 'function') {
+                    console.log('[Modal] Otwieram modal:', modal.id);
                     modal.showModal();
                 } else {
-                    console.warn('Modal not found or showModal not supported:', selector);
+                    console.warn('[Modal] Modal nie znaleziony lub showModal nieobsługiwany:', selector, modal);
                 }
             });
         });
@@ -138,7 +151,10 @@
         document.querySelectorAll('[data-modal-close]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const modal = btn.closest('dialog');
-                if (modal) modal.close();
+                if (modal) {
+                    console.log('[Modal] Zamykam modal:', modal.id);
+                    modal.close();
+                }
             });
         });
 
@@ -147,15 +163,22 @@
                 const rect = modal.getBoundingClientRect();
                 const isInDialog = ev.clientX >= rect.left && ev.clientX <= rect.right &&
                                    ev.clientY >= rect.top && ev.clientY <= rect.bottom;
-                if (!isInDialog) modal.close();
+                if (!isInDialog) {
+                    console.log('[Modal] Kliknięcie w backdrop, zamykam:', modal.id);
+                    modal.close();
+                }
             });
         });
 
         document.addEventListener('keydown', function (ev) {
             if (ev.key === 'Escape') {
-                document.querySelectorAll('dialog[open]').forEach(function (m) { m.close(); });
+                document.querySelectorAll('dialog[open]').forEach(function (m) {
+                    console.log('[Modal] Escape, zamykam:', m.id);
+                    m.close();
+                });
             }
         });
+        console.log('[Modal] Inicjalizacja zakończona');
     }
 
     if (document.readyState === 'loading') {

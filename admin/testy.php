@@ -385,7 +385,7 @@ layout_header('Testy', 'testy.php');
                 <p class="card-subtitle">Kliknij przycisk poniżej, aby dodać nowe pytanie w oknie modalnym.</p>
             </div>
             <div class="card-actions">
-                <button type="button" class="btn btn-primary" data-modal-open="#modalDodajPytanie">+ Dodaj pytanie</button>
+                <button type="button" class="btn btn-primary" data-modal-open="#modalDodajPytanie" onclick="openModal('modalDodajPytanie')">+ Dodaj pytanie</button>
             </div>
         </div>
 
