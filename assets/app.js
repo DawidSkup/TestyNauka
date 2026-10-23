@@ -122,37 +122,47 @@
     /* ---------------------------------------------------------------- */
     /* Modale (dialog)                                                  */
     /* ---------------------------------------------------------------- */
-    document.querySelectorAll('[data-modal-open]').forEach(function (trigger) {
-        trigger.addEventListener('click', function () {
-            const selector = trigger.getAttribute('data-modal-open');
-            const modal = document.querySelector(selector);
-            if (modal && typeof modal.showModal === 'function') {
-                modal.showModal();
+    function initModals() {
+        document.querySelectorAll('[data-modal-open]').forEach(function (trigger) {
+            trigger.addEventListener('click', function () {
+                const selector = trigger.getAttribute('data-modal-open');
+                const modal = document.querySelector(selector);
+                if (modal && typeof modal.showModal === 'function') {
+                    modal.showModal();
+                } else {
+                    console.warn('Modal not found or showModal not supported:', selector);
+                }
+            });
+        });
+
+        document.querySelectorAll('[data-modal-close]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const modal = btn.closest('dialog');
+                if (modal) modal.close();
+            });
+        });
+
+        document.querySelectorAll('dialog').forEach(function (modal) {
+            modal.addEventListener('click', function (ev) {
+                const rect = modal.getBoundingClientRect();
+                const isInDialog = ev.clientX >= rect.left && ev.clientX <= rect.right &&
+                                   ev.clientY >= rect.top && ev.clientY <= rect.bottom;
+                if (!isInDialog) modal.close();
+            });
+        });
+
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape') {
+                document.querySelectorAll('dialog[open]').forEach(function (m) { m.close(); });
             }
         });
-    });
+    }
 
-    document.querySelectorAll('[data-modal-close]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            const modal = btn.closest('dialog');
-            if (modal) modal.close();
-        });
-    });
-
-    document.querySelectorAll('dialog').forEach(function (modal) {
-        modal.addEventListener('click', function (ev) {
-            const rect = modal.getBoundingClientRect();
-            const isInDialog = ev.clientX >= rect.left && ev.clientX <= rect.right &&
-                               ev.clientY >= rect.top && ev.clientY <= rect.bottom;
-            if (!isInDialog) modal.close();
-        });
-    });
-
-    document.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Escape') {
-            document.querySelectorAll('dialog[open]').forEach(function (m) { m.close(); });
-        }
-    });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initModals);
+    } else {
+        initModals();
+    }
 
     /* ---------------------------------------------------------------- */
     /* Rozwiązywanie testu – postęp i ostrzeżenie o brakujących          */
