@@ -587,7 +587,7 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
                             ▶ Odtwórz
                         </a>
                         <?php if ($isFirma): ?>
-                            <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/prezentacje.php?akcja=edytuj&id=' . (int) $p['id'])) ?>">Slajdy</a>
+                            <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/prezentacje.php?akcja=edytuj&id=' . (int) $p['id'])) ?>">Edytuj</a>
                             <form method="post" action="<?= e(app_url('admin/prezentacje.php')) ?>" class="form-inline" data-confirm="Usunąć prezentację? Slajdy pozostaną w materiałach.">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="akcja" value="usun">
