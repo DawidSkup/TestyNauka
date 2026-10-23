@@ -25,8 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $opis = trim((string) ($_POST['opis'] ?? ''));
 
         if ($tytul === '') {
-            flash('error', 'Tytuł testu jest wymagany.');
-            redirect(app_url('admin/testy.php'));
+            $stmt = $pdo->query('SELECT COALESCE(MAX(CAST(SUBSTR(tytul, INSTR(tytul, " ") + 1) AS INTEGER)), 0) + 1 FROM testy WHERE tytul LIKE "Test %"');
+            $nextNum = (int) $stmt->fetchColumn();
+            $tytul = 'Test ' . $nextNum;
         }
 
         $stmt = $pdo->prepare('INSERT INTO testy (tytul, opis, status, autor_id, created_at, updated_at) VALUES (:tytul, :opis, "szkic", :autor_id, :now, :now)');
@@ -680,8 +681,8 @@ layout_header('Testy', 'testy.php');
                 <input type="hidden" name="akcja" value="dodaj_test">
 
                 <label class="form-field">
-                    <span>Tytuł testu <em class="req">*</em></span>
-                    <input type="text" name="tytul" placeholder="np. Test z materiału – umowy" required>
+                    <span>Tytuł testu</span>
+                    <input type="text" name="tytul" placeholder="np. Test z materiału – umowy (puste = automatycznie „Test 1”)">
                 </label>
 
                 <label class="form-field form-field-full">

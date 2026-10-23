@@ -25,8 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $opis = trim((string) ($_POST['opis'] ?? ''));
 
         if ($tytul === '') {
-            flash('error', 'Tytuł prezentacji jest wymagany.');
-            redirect(app_url('admin/prezentacje.php'));
+            $stmt = $pdo->query('SELECT COALESCE(MAX(CAST(SUBSTR(tytul, INSTR(tytul, " ") + 1) AS INTEGER)), 0) + 1 FROM prezentacje WHERE tytul LIKE "Prezentacja %"');
+            $nextNum = (int) $stmt->fetchColumn();
+            $tytul = 'Prezentacja ' . $nextNum;
         }
 
         $stmt = $pdo->prepare(
@@ -534,8 +535,8 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
                 <input type="hidden" name="akcja" value="dodaj">
 
                 <label class="form-field">
-                    <span>Tytuł prezentacji <em class="req">*</em></span>
-                    <input type="text" name="tytul" placeholder="np. Szkolenie BHP – wprowadzenie" required>
+                    <span>Tytuł prezentacji</span>
+                    <input type="text" name="tytul" placeholder="np. Szkolenie BHP – wprowadzenie (puste = automatycznie „Prezentacja 1”)">
                 </label>
 
                 <label class="form-field form-field-full">
