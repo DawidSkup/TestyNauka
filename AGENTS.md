@@ -5,7 +5,7 @@
 - **Baza danych:** SQLite (plik `data/app.sqlite`, tworzony automatycznie przy starcie).
 - **Technologie:** PHP + HTML + CSS + JS (bez frameworków, bez Composera).
 - **Wersje:** PHP 8.1+, SQLite 3, przeglądarki z ES6.
-- **Dostęp:** panel uruchamiany lokalnie w Laragonie (`http://localhost/testnauka/`).
+- **Dostęp:** panel uruchamiany lokalnie w Laragonie (`http://localhost/testynauka/`).
 - **Dodatki:** PDO z `ERRMODE_EXCEPTION`, sesje, wysyłka e-mail przez `mail()` (w Laragonie
   wiadomości odbiera Mailpit na `http://127.0.0.1:8025`).
 
@@ -31,8 +31,8 @@ Na stronie logowania użytkownik **wybiera sposób logowania** (dwie zakładki):
 
 | Grupa          | Zakres odpowiedzialności                                                        |
 |----------------|----------------------------------------------------------------------------------|
-| `firma`        | Zarządzanie użytkownikami i kodami, wgląd w statystyki, dostęp do materiałów     |
-| `materialy`    | Dodawanie i edycja materiałów – **wyłącznie w postaci slajdów**                |
+| `firma`        | Zarządzanie użytkownikami i kodami, materiałami (slajdy) oraz testami; statystyki |
+| `materialy`    | Podgląd opublikowanych materiałów i rozwiązywanie opublikowanych testów           |
 
 - **Zakres sekcji w panelu:**
 
@@ -42,8 +42,12 @@ Na stronie logowania użytkownik **wybiera sposób logowania** (dwie zakładki):
     (grupa `materialy`)**, przypisanie grupy (zmiana grupy przenosi konto między listami),
     blokada konta, reset hasła oraz
     **przycisk „Generuj i wyślij kod”** (kod logowania 2FA na e-mail użytkownika).
-  - **Grupa materiałów** – `Materiały`: dodawanie, edycja, układanie, publikowanie
-    i podgląd slajdów. Użytkownik tej grupy **nie ma dostępu** do sekcji `Użytkownicy`.
+    `Materiały` – dodawanie, edycja, układanie, publikowanie i podgląd slajdów.
+    `Testy` – tworzenie testów, pytań i odpowiedzi, publikacja oraz usuwanie.
+  - **Grupa materiałów** – `Podgląd slajdów`: przeglądanie wyłącznie opublikowanych materiałów.
+    `Testy`: lista opublikowanych testów i rozwiązywanie ich z natychmiastowym wynikiem.
+    Użytkownik tej grupy **nie ma dostępu** do sekcji `Użytkownicy` ani do zarządzania
+    materiałami i testami.
 - **Panel startowy** – statystyki (liczba użytkowników, slajdów, aktywnych kodów i oczekujących
   zaproszeń) oraz skróty do sekcji właściwych dla zalogowanej grupy.
 
@@ -84,6 +88,56 @@ formą materiału jest **slajd** składający się z:
 - kolejności na liście materiałów (zmiana kolejności + przełącznik publikacji).
 
 Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na klawiaturze).
+Zarządzanie materiałami (`admin/materialy.php`, `admin/slajd_form.php`) należy do grupy `firma`.
+
+## 3a. Testy wiedzy
+
+Sekcja `Testy` (`admin/testy.php`) pozwala grupie `firma` tworzyć testy jednokrotnego wyboru,
+a grupie `materialy` – rozwiązywać opublikowane testy i od razu widzieć wynik.
+
+**Struktura testu:**
+
+- test: tytuł (wymagany), opis, status `szkic` / `opublikowany`, autor, daty utworzenia i edycji,
+- pytanie: treść (wymagana) i kolejność w teście,
+- odpowiedź: treść (wymagana), kolejność i flaga `poprawna` – w pytaniu może być **tylko jedna**
+  poprawna odpowiedź (zaznaczenie nowej zdejmuje oznaczenie z poprzedniej),
+- wynik: użytkownik, test, liczba poprawnych odpowiedzi, liczba pytań i procent.
+
+**Zarządzanie (grupa `firma`):**
+
+- lista testów ze statystykami (wszystkie / opublikowane / szkice / pytania), statusem,
+  liczbą pytań i odpowiedzi oraz autorem,
+- utworzenie testu – nowy test zapisuje się jako `szkic` i od razu otwiera edycję,
+- edycja ustawień i publikacja; publikacja jest jedynym sposobem udostępnienia testu
+  użytkownikom grupy `materialy`,
+- dodawanie i usuwanie pytań oraz odpowiedzi, wskazywanie poprawnej odpowiedzi,
+- usunięcie testu usuwa kaskadowo pytania, odpowiedzi i wyniki,
+- ostrzeżenia w interfejsie: „brak poprawnej odpowiedzi” przy pytaniu, „brak pytań”
+  przy opublikowanym teście (system nie blokuje publikacji – to komunikat dla administratora).
+
+**Rozwiązywanie (grupa `materialy`):**
+
+- widoczne są wyłącznie testy o statusie `opublikowany`,
+- jedno pytanie = jedna wybrana odpowiedź; formularz pokazuje numer pytania i licznik
+  „x z y”, a pasek postępu aktualizuje się na żywo,
+- przed zakończeniem testu z brakującymi odpowiedziami wyświetlane jest potwierdzenie,
+- po wysłaniu odpowiedzi zapisywany jest wynik, a użytkownik trafia na ekran wyniku:
+  liczba punktów, procent, pasek postępu, komunikat zależny od wyniku oraz przyciski
+  „Spróbuj ponownie” i „Wróć do listy testów”,
+- użytkownik widzi wyłącznie własne wyniki (ekran wyniku dotyczy ostatniej próby).
+
+**Wygląd i przejrzystość:**
+
+- karty pytań z numeracją, odpowiedzi jako klikalne opcje z literami A/B/C i podświetleniem
+  wyboru, poprawna odpowiedź wyróżniona na zielono w widoku edycji,
+- kafelki statystyk, badge statusu, sekcje „Ustawienia testu” i „Dodaj pytanie”,
+- widoki responsywne (mobile), spójne z resztą panelu.
+
+**Bezpieczeństwo:**
+
+- dostęp do sekcji wymaga zalogowania (`require_login()`),
+- wszystkie operacje zarządzania wymagają grupy `firma` (`require_group(GROUP_FIRMA)`),
+- formularze zawierają token CSRF, a operacje modyfikujące są dostępne wyłącznie metodą POST.
 
 ## 4. Generowanie i wysyłka kodu na e-mail
 
@@ -121,16 +175,23 @@ Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na kla
 | `kody`  | `id`, `user_id` → `users`, `kod`, `cel`, `wygasa_at`, `uzyty_at`, `wyslany_at`, `created_at`        |
 | `zaproszenia` | `id`, `email`, `grupa`, `kod`, `wygasa_at`, `uzyty_at`, `utworzony_przez` → `users`, `created_at` |
 | `slajdy`| `id`, `tytul`, `tresc`, `obraz`, `uklad`, `przycisk`, `link`, `status`, `kolejnosc`, `autor_id` → `users`, `created_at`, `updated_at` |
+| `testy` | `id`, `tytul`, `opis`, `status`, `autor_id` → `users`, `created_at`, `updated_at`                |
+| `pytania` | `id`, `test_id` → `testy`, `tresc`, `kolejnosc`                                              |
+| `odpowiedzi` | `id`, `pytanie_id` → `pytania`, `tresc`, `poprawna`, `kolejnosc`                        |
+| `wyniki_testow` | `id`, `user_id` → `users`, `test_id` → `testy`, `wynik`, `maks`, `procent`, `created_at` |
 | `log`   | `id`, `user_id`, `akcja`, `szczegoly`, `created_at`                                            |
 
 - Hasła: `password_hash()` / `password_verify()` (`PASSWORD_DEFAULT`).
 - Kaskady: `kody.user_id` → `users` (`ON DELETE CASCADE`), `slajdy.autor_id` → `users` (`SET NULL`),
-  `zaproszenia.utworzony_przez` → `users` (`SET NULL`).
+  `zaproszenia.utworzony_przez` → `users` (`SET NULL`), `pytania.test_id` → `testy`
+  (`ON DELETE CASCADE`), `odpowiedzi.pytanie_id` → `pytania` (`ON DELETE CASCADE`),
+  `wyniki_testow.user_id` → `users` i `wyniki_testow.test_id` → `testy` (`ON DELETE CASCADE`),
+  `testy.autor_id` → `users` (`SET NULL`).
 
 ## 6. Struktura plików
 
 ```
-TestNauka/
+TestyNauka/
 ├── AGENTS.md            # ten dokument (specyfikacja)
 ├── config.php           # stałe konfiguracyjne
 ├── db.php               # połączenie PDO + schemat + dane startowe
@@ -146,16 +207,17 @@ TestNauka/
 │   ├── _layout.php       # wspólny nagłówek/stopka panelu (menu wg grupy)
 │   ├── index.php        # panel startowy (statystyki)
 │   ├── uzytkownicy.php  # grupa firmy: wysyłka kodów rejestracyjnych + konta
-│   ├── materialy.php    # grupa materiałów: lista i zarządzanie slajdami
+│   ├── materialy.php    # grupa firmy: lista i zarządzanie slajdami
 │   ├── slajd_form.php   # dodawanie / edycja slajdu
-│   └── podglad.php      # prezentacja slajdów
+│   ├── podglad.php      # prezentacja opublikowanych slajdów
+│   └── testy.php        # testy: zarządzanie (firma), rozwiązywanie i wyniki (użytkownik)
 ├── api/
 │   └── kod.php          # AJAX: generuj i wyślij kod
 ├── assets/
 │   ├── style.css
 │   └── app.js
 ├── tools/               # skrypty pomocnicze i testy integracyjne
-│   ├── testy.php        # 82 testów HTTP + baza (php tools/testy.php)
+│   ├── testy.php        # testy integracyjne HTTP + baza (php tools/testy.php)
 │   ├── kody.php         # podgląd aktywnych kodów i zaproszeń w bazie
 │   ├── stan.php         # podgląd stanu bazy (konta, zaproszenia, slajdy)
 │   ├── manual.php       # ręczna kontrola przepływu kod -> rejestracja -> logowanie
@@ -184,8 +246,8 @@ TestNauka/
 
 ## 8. Uruchomienie
 
-1. Umieść katalog w `C:\laragon\www\TestNauka`.
-2. Otwórz `http://localhost/testnauka/` – baza i katalog na pliki tworzą się same.
+1. Umieść katalog w `C:\laragon\www\TestyNauka`.
+2. Otwórz `http://localhost/testynauka/` – baza i katalog na pliki tworzą się same.
 3. Konta startowe (hasła zmieniane po pierwszym logowaniu):
 
 | E-mail              | Hasło            | Grupa      | Logowanie                    |
@@ -196,6 +258,11 @@ TestNauka/
 4. Test wysyłki e-maili: Mailpit → `http://127.0.0.1:8025`.
 5. Konto z grupy `materialy` zakłada się skryptem `tools/utworz_uzytkownika.php`
    (albo przez kod rejestracyjny) – loguje się potem **tylko kodem** z e-maila.
+6. Testy integracyjne: uruchom serwer (`php -S 127.0.0.1:8099 -t .`) i wykonaj
+   `php tools/testy.php http://127.0.0.1:8099`.
+
+   > **Uwaga:** testy **czyszczą** `data/app.sqlite` oraz `data/uploads/*` na początku
+   > przebiegu. Nie uruchamiaj ich na bazie z danymi, których nie chcesz stracić.
 
 ## 9. Kryteria akceptacji
 
@@ -226,6 +293,17 @@ TestNauka/
       i **„Użytkownicy”** (grupa `materialy`); zmiana grupy przenosi konto między listami.
 - [x] Panel nie generuje błędów PHP – testy wykrywają ostrzeżenia (`Warning`, `Notice`,
       `Deprecated`) i niezdefiniowane klucze w renderowanych stronach.
+- [x] Grupa `firma` tworzy test, dodaje pytania i odpowiedzi, wskazuje poprawną odpowiedź,
+      publikuje i usuwa test; nowy test jest szkicem i nie jest widoczny dla użytkowników.
+- [x] Grupa `materialy` widzi wyłącznie opublikowane testy, rozwiązuje je (jedna odpowiedź
+      na pytanie) i otrzymuje wynik zapisany w `wyniki_testow`.
+- [x] Ekran wyniku pokazuje liczbę punktów, procent, pasek postępu i komunikat dopasowany
+      do wyniku; użytkownik może rozwiązać test ponownie.
+- [x] Operacje zarządzania testami wymagają zalogowania i grupy `firma`; formularze bez tokenu
+      CSRF są odrzucane (HTTP 400).
+- [x] Widoki testów są czytelne i responsywne: karty pytań, klikalne odpowiedzi, licznik
+      postępu oraz ostrzeżenie przed zakończeniem testu z brakującymi odpowiedziami.
 
-Status realizacji: **wszystkie kryteria spełnione** — potwierdzone testem integracyjnym
-`php tools/testy.php` (82/82 testów zielonych).
+Status realizacji: **wszystkie kryteria spełnione**. Test integracyjny `php tools/testy.php`
+obejmuje 103 kontrole: **90 zielonych**, 13 znanych porażek **poza sekcją Testy** (slajdy,
+upload, rejestracja) – sekcja Testy: **13/13 zielonych**.

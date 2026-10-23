@@ -3,7 +3,7 @@
 > Dokument roboczy. Statusy aktualizowane na bieżąco.
 > Legenda: `[x]` zrobione · `[ ]` do zrobienia · `[~]` w trakcie · `[!]` problem/ryzyko
 
-**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona (82/82 testów zielonych)**
+**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona; testy integracyjne: 90/103 (13 znanych porażek poza sekcją Testy)**
 
 ---
 
@@ -105,10 +105,11 @@
 - [x] `assets/style.css` – komponenty: karty, tabele, formularze, przyciski, badge'e
 - [x] `assets/style.css` – komunikaty flash, warianty przycisków (primary/ghost/danger)
 - [x] `assets/style.css` – ekran logowania, podgląd slajdów (tryb prezentacji)
+- [x] `assets/style.css` – komponenty testów: karty pytań, odpowiedzi, pasek postępu, ekran wyniku
 
 ## Faza 9 – Testy i weryfikacja ✅
 
-- [x] `tools/testy.php` – 82 testów integracyjnych na HTTP + bazę
+- [x] `tools/testy.php` – 103 kontrole integracyjne na HTTP + bazę (90 zielonych, 13 znanych porażek poza sekcją Testy)
 - [x] Uruchomienie serwera PHP i sprawdzenie braku błędów w logu
 - [x] Test logowania dla obu grup (`admin@firma.pl`, `marketing@firma.pl`)
 - [x] Test wyboru trybu logowania (Administrator = e-mail + hasło, Użytkownik = sam kod)
@@ -128,12 +129,45 @@
       z kodem → weryfikacja → panel, kolejne logowanie znowu wymaga kodu)
 - [x] Test throttlingu logowania
 - [x] Testy powtarzalne (reset bazy na początku przebiegu)
+- [x] Testy (sekcja 9): dodanie testu, pytania i odpowiedzi oraz oznaczenie poprawnej
+- [x] Testy (sekcja 9): publikacja testu, strona wyniku i zapis wyniku w bazie
+- [x] Testy (sekcja 9): odrzucenie formularza bez tokenu CSRF
+- [x] Testy: brak błędów PHP na liście, w edycji, przy rozwiązywaniu i na ekranie wyniku
 
 ## Faza 10 – Dokumentacja ✅
 
 - [x] `README.md` – opis instalacji, konta startowe, testy e-mail, struktura
 - [x] `AGENTS.md` – aktualizacja struktury plików po implementacji
 - [x] `plan.md` – zaznaczenie zakończonych pozycji
+
+## Faza 11 – Testy wiedzy ✅
+
+- [x] `db.php` – tabele `testy`, `pytania`, `odpowiedzi`, `wyniki_testow` (+ kaskady)
+- [x] `admin/testy.php` – lista testów dla grupy `firma`: statystyki, status, liczba pytań, autor
+- [x] `admin/testy.php` – tworzenie testu (nowy test jako szkic) i przejście od razu do edycji
+- [x] `admin/testy.php` – edycja ustawień testu i publikacja (`szkic` / `opublikowany`)
+- [x] `admin/testy.php` – dodawanie i usuwanie pytań z zachowaniem kolejności
+- [x] `admin/testy.php` – dodawanie i usuwanie odpowiedzi oraz wskazanie jednej poprawnej
+- [x] `admin/testy.php` – walidacja tytułu, treści pytania i treści odpowiedzi
+- [x] `admin/testy.php` – usuwanie testu wraz z pytaniami, odpowiedziami i wynikami (kaskada)
+- [x] `admin/testy.php` – lista opublikowanych testów dla grupy `materialy`
+- [x] `admin/testy.php` – rozwiązywanie testu (jedna odpowiedź na pytanie)
+- [x] `admin/testy.php` – zapis wyniku (`wynik`, `maks`, `procent`) i ekran wyniku
+- [x] `admin/testy.php` – `require_login()` oraz `require_group(GROUP_FIRMA)` dla zarządzania
+- [x] `admin/testy.php` – token CSRF dla wszystkich formularzy
+
+## Faza 12 – Wygląd i przejrzystość testów ✅
+
+- [x] `assets/style.css` – komponenty kart, nagłówków kart, pól formularzy i akcji
+- [x] `assets/style.css` – karty pytań i odpowiedzi, wyróżnienie poprawnej odpowiedzi
+- [x] `assets/style.css` – klikalne opcje odpowiedzi (A/B/C) z podświetleniem wyboru
+- [x] `assets/style.css` – pasek postępu i ekran wyniku (punkty, procent, komunikat)
+- [x] `assets/style.css` – responsywność widoków testów (mobile)
+- [x] `assets/app.js` – licznik odpowiedzi i pasek postępu aktualizowany na żywo
+- [x] `assets/app.js` – ostrzeżenie przed zakończeniem testu z brakującymi odpowiedziami
+- [x] `admin/testy.php` – kafelki statystyk, badge statusu i ostrzeżenie „brak pytań”
+- [x] `admin/testy.php` – czytelne komunikaty i podpowiedzi przy tworzeniu testu
+- [x] `admin/testy.php` – ekran wyniku z komunikatem zależnym od procentu
 
 ---
 
@@ -149,11 +183,13 @@
 | 5. Użytkownicy | ✅ zrobione | grupa `firma` + przycisk generowania kodu |
 | 6. Materiały (slajdy) | ✅ zrobione | tylko slajdy, upload, kolejność, podgląd |
 | 7. API i JavaScript | ✅ zrobione | `api/kod.php`, `assets/app.js` |
-| 8. Warstwa wizualna | ✅ zrobione | `assets/style.css` |
-| 9. Testy | ✅ zrobione | 82/82 zielonych (`php tools/testy.php`) |
+| 8. Warstwa wizualna | ✅ zrobione | `assets/style.css` (także komponenty testów) |
+| 9. Testy | ✅ zrobione | 90/103 zielonych (`php tools/testy.php`), 13 znanych porażek poza Testami |
 | 10. Dokumentacja | ✅ zrobione | `README.md`, `AGENTS.md`, `plan.md` |
+| 11. Testy wiedzy | ✅ zrobione | `admin/testy.php`, tabele testów w `db.php` |
+| 12. Wygląd i przejrzystość testów | ✅ zrobione | `assets/style.css`, `assets/app.js`, `admin/testy.php` |
 
-**Wykonano:** 107 / 107 zadań
+**Wykonano:** 116 / 116 zadań
 
 ## Znalezione i naprawione błędy
 
@@ -177,3 +213,28 @@
 9. **Logowanie jednym formularzem** – strona logowania ma teraz dwa tryby: „Administrator”
    (e-mail + hasło, grupa `firma`) i „Użytkownik” (tylko 6-znakowy kod z e-maila, grupa
    `materialy`); konto z niewłaściwej grupy jest odrzucane czytelnym komunikatem.
+10. **Błąd „Dodaj test” (fatal error)** – `admin/testy.php` wywoływał `csrf_require()` bez
+    argumentu, co kończyło się `ArgumentCountError`; przekazano token z `$_POST['csrf']`.
+11. **Brakujące funkcje i podwójna stopka w testach** – wywołania nieistniejącego
+    `flash_set()` zastąpiono `flash()`, a zdublowane `layout_footer()` usunięto.
+12. **Brak kontroli dostępu do testów** – dodano `require_login()` oraz
+    `require_group(GROUP_FIRMA)` przy wszystkich operacjach zarządzania.
+13. **Niezdefiniowane klasy CSS w testach** – widok testów używał klas, których nie było
+    w `assets/style.css` (m.in. `card-header`, `card-body`, `form-field`, `form-actions`);
+    dodano brakujące komponenty, dzięki czemu układ przestał się „rozjeżdżać”.
+14. **Brak czytelnego podsumowania po teście** – zamiast komunikatu flash powstał osobny
+    ekran wyniku (punkty, procent, pasek postępu, komunikat, ponowna próba).
+
+## Znane problemy (poza sekcją Testy)
+
+Poniższe 13 kontroli `tools/testy.php` nie przechodzi również na wersji sprzed zmian w testach
+(porównane z `HEAD`), więc nie są regresją:
+
+- `Grupa materialy bez dostepu do Uzytkownikow = 403`
+- `Dodanie slajdu z obrazem`, `Slajd widoczny na liscie`, `Slajd widoczny w podgladzie`
+- `Upload niedozwolonego typu odrzucony`, `Upload pliku > 5 MB odrzucony`, `Pusty tytul odrzucony`
+- `Formularz bez tokenu CSRF odrzucony` (dotyczy slajdów)
+- `Kod rejestracyjny staje się stałym kodem logowania`
+- `Zmiana statusu slajdu`, `Zmiana kolejnosci slajdu`, `Edycja slajdu`, `Usuniecie slajdu`
+
+Sekcja Testy: **13/13 zielonych**. Cały zestaw: **90/103** (stan na ostatni przebieg).
