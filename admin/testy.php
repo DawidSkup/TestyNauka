@@ -102,10 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect(app_url('admin/testy.php?akcja=edytuj&test_id=' . $testId));
         }
 
-        if ($poprawna === 1) {
-            $pdo->prepare('UPDATE odpowiedzi SET poprawna = 0 WHERE pytanie_id = :pytanie_id')->execute([':pytanie_id' => $pytanieId]);
-        }
-
         $max = (int) $pdo->query('SELECT COALESCE(MAX(kolejnosc), -1) + 1 AS next FROM odpowiedzi WHERE pytanie_id = ' . $pytanieId)->fetchColumn();
         $stmt = $pdo->prepare('INSERT INTO odpowiedzi (pytanie_id, tresc, poprawna, kolejnosc) VALUES (:pytanie_id, :tresc, :poprawna, :kolejnosc)');
         $stmt->execute([':pytanie_id' => $pytanieId, ':tresc' => $tresc, ':poprawna' => $poprawna, ':kolejnosc' => $max]);
@@ -120,6 +116,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare('DELETE FROM odpowiedzi WHERE id = :id');
             $stmt->execute([':id' => $odpowiedzId]);
             flash('success', 'Odpowiedź usunięta.');
+        }
+        redirect(app_url('admin/testy.php?akcja=edytuj&test_id=' . $testId));
+    }
+
+    if ($action === 'przelacz_poprawna') {
+        require_group(GROUP_FIRMA);
+        $odpowiedzId = (int) ($_POST['odpowiedz_id'] ?? 0);
+        $poprawna = ((int) ($_POST['poprawna'] ?? 0)) === 1 ? 1 : 0;
+
+        if ($odpowiedzId > 0) {
+            // Odpowiedź musi należeć do pytania z edytowanego testu.
+            $stmt = $pdo->prepare(
+                'SELECT p.test_id FROM odpowiedzi o JOIN pytania p ON p.id = o.pytanie_id WHERE o.id = :id'
+            );
+            $stmt->execute([':id' => $odpowiedzId]);
+            $testOdpowiedzi = $stmt->fetchColumn();
+
+            if ($testOdpowiedzi !== false && (int) $testOdpowiedzi === $testId) {
+                $stmt = $pdo->prepare('UPDATE odpowiedzi SET poprawna = :poprawna WHERE id = :id');
+                $stmt->execute([':poprawna' => $poprawna, ':id' => $odpowiedzId]);
+                flash('success', $poprawna === 1
+                    ? 'Odpowiedź oznaczona jako poprawna.'
+                    : 'Odpowiedź oznaczona jako niepoprawna.');
+            }
         }
         redirect(app_url('admin/testy.php?akcja=edytuj&test_id=' . $testId));
     }
@@ -139,12 +159,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         foreach ($pytania as $pid) {
             $pid = (int) $pid;
-            $wybrana = isset($odpowiedzi[$pid]) ? (int) $odpowiedzi[$pid] : 0;
-            if ($wybrana > 0) {
-                $ok = (int) $pdo->query('SELECT COUNT(*) FROM odpowiedzi WHERE id = ' . $wybrana . ' AND pytanie_id = ' . $pid . ' AND poprawna = 1')->fetchColumn();
-                if ($ok > 0) {
-                    $poprawne++;
+            $wybrane = [];
+            if (isset($odpowiedzi[$pid])) {
+                $wartosc = $odpowiedzi[$pid];
+                if (is_array($wartosc)) {
+                    foreach ($wartosc as $w) {
+                        $w = (int) $w;
+                        if ($w > 0) {
+                            $wybrane[] = $w;
+                        }
+                    }
+                } elseif ((int) $wartosc > 0) {
+                    $wybrane[] = (int) $wartosc;
                 }
+            }
+            $wybrane = array_values(array_unique($wybrane));
+
+            $poprawneIds = $pdo->query('SELECT id FROM odpowiedzi WHERE pytanie_id = ' . $pid . ' AND poprawna = 1')->fetchAll(PDO::FETCH_COLUMN);
+            $poprawneIds = array_map('intval', $poprawneIds);
+            sort($poprawneIds);
+            sort($wybrane);
+
+            if ($poprawneIds !== [] && $wybrane === $poprawneIds) {
+                $poprawne++;
             }
         }
 
@@ -342,7 +379,7 @@ layout_header('Testy', 'testy.php');
         <div class="card-header">
             <div>
                 <h2 class="card-title">Dodaj pytanie</h2>
-                <p class="card-subtitle">Wpisz treść pytania, a następnie dodaj do niego odpowiedzi i wskaż poprawną.</p>
+                <p class="card-subtitle">Wpisz treść pytania, a następnie dodaj do niego odpowiedzi i wskaż poprawną (możesz wskazać kilka).</p>
             </div>
         </div>
         <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="form-grid">
@@ -374,11 +411,10 @@ layout_header('Testy', 'testy.php');
                 <?php
                 $pytId = (int) $pyt['id'];
                 $odpowiedzi = $odpowiedziWgPytania[$pytId] ?? [];
-                $maPoprawna = false;
+                $liczbaPoprawnych = 0;
                 foreach ($odpowiedzi as $odp) {
                     if ((int) $odp['poprawna'] === 1) {
-                        $maPoprawna = true;
-                        break;
+                        $liczbaPoprawnych++;
                     }
                 }
                 ?>
@@ -389,10 +425,13 @@ layout_header('Testy', 'testy.php');
                             <p class="question-title"><?= e($pyt['tresc']) ?></p>
                             <div class="question-meta">
                                 <span class="badge"><?= count($odpowiedzi) ?> <?= count($odpowiedzi) === 1 ? 'odpowiedź' : 'odpowiedzi' ?></span>
-                                <?php if ($maPoprawna): ?>
-                                    <span class="badge badge-ok">✓ poprawna wskazana</span>
-                                <?php else: ?>
+                                <?php if ($liczbaPoprawnych === 0): ?>
                                     <span class="badge badge-warn">brak poprawnej odpowiedzi</span>
+                                <?php elseif ($liczbaPoprawnych === 1): ?>
+                                    <span class="badge badge-ok">✓ 1 poprawna</span>
+                                <?php else: ?>
+                                    <span class="badge badge-ok">✓ <?= $liczbaPoprawnych ?> <?= $liczbaPoprawnych < 5 ? 'poprawne' : 'poprawnych' ?></span>
+                                    <span class="badge">wielokrotny wybór</span>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -406,7 +445,7 @@ layout_header('Testy', 'testy.php');
                     </div>
 
                     <?php if ($odpowiedzi === []): ?>
-                        <p class="empty-inline">Brak odpowiedzi. Dodaj co najmniej dwie – jedna musi być poprawna.</p>
+                        <p class="empty-inline">Brak odpowiedzi. Dodaj co najmniej dwie i zaznacz jedną lub kilka jako poprawne.</p>
                     <?php else: ?>
                         <ul class="answer-list">
                             <?php foreach ($odpowiedzi as $odp): ?>
@@ -417,13 +456,25 @@ layout_header('Testy', 'testy.php');
                                     <?php if ($jestPoprawna): ?>
                                         <span class="badge badge-ok">poprawna</span>
                                     <?php endif; ?>
-                                    <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="answer-delete" data-confirm="Usunąć tę odpowiedź?">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="akcja" value="usun_odpowiedz">
-                                        <input type="hidden" name="test_id" value="<?= (int) $test['id'] ?>">
-                                        <input type="hidden" name="odpowiedz_id" value="<?= (int) $odp['id'] ?>">
-                                        <button class="btn btn-ghost btn-sm text-danger" type="submit" title="Usuń odpowiedź" aria-label="Usuń odpowiedź">✕</button>
-                                    </form>
+                                    <div class="answer-actions">
+                                        <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="answer-toggle">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="akcja" value="przelacz_poprawna">
+                                            <input type="hidden" name="test_id" value="<?= (int) $test['id'] ?>">
+                                            <input type="hidden" name="odpowiedz_id" value="<?= (int) $odp['id'] ?>">
+                                            <input type="hidden" name="poprawna" value="<?= $jestPoprawna ? '0' : '1' ?>">
+                                            <button class="btn btn-ghost btn-sm" type="submit" title="<?= $jestPoprawna ? 'Oznacz jako niepoprawną' : 'Oznacz jako poprawną' ?>">
+                                                <?= $jestPoprawna ? 'Niepoprawna' : 'Poprawna' ?>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="answer-delete" data-confirm="Usunąć tę odpowiedź?">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="akcja" value="usun_odpowiedz">
+                                            <input type="hidden" name="test_id" value="<?= (int) $test['id'] ?>">
+                                            <input type="hidden" name="odpowiedz_id" value="<?= (int) $odp['id'] ?>">
+                                            <button class="btn btn-ghost btn-sm text-danger" type="submit" title="Usuń odpowiedź" aria-label="Usuń odpowiedź">✕</button>
+                                        </form>
+                                    </div>
                                 </li>
                             <?php endforeach; ?>
                         </ul>
@@ -441,7 +492,7 @@ layout_header('Testy', 'testy.php');
                         </label>
                         <button class="btn btn-sm" type="submit">+ Dodaj odpowiedź</button>
                     </form>
-                    <p class="form-hint">Zaznaczenie „Poprawna” zastąpi wcześniej wskazaną poprawną odpowiedź w tym pytaniu.</p>
+                    <p class="form-hint">W jednym pytaniu można zaznaczyć kilka odpowiedzi jako poprawne. Przy rozwiązywaniu użytkownik musi zaznaczyć wszystkie poprawne odpowiedzi.</p>
                 </article>
             <?php endforeach; ?>
         </div>
@@ -486,12 +537,22 @@ layout_header('Testy', 'testy.php');
                         <?php
                         $pytId = (int) $pyt['id'];
                         $odpowiedzi = $odpowiedziWgPytania[$pytId] ?? [];
+                        $liczbaPoprawnych = 0;
+                        foreach ($odpowiedzi as $odp) {
+                            if ((int) $odp['poprawna'] === 1) {
+                                $liczbaPoprawnych++;
+                            }
+                        }
+                        $wielokrotny = $liczbaPoprawnych > 1;
                         ?>
                         <article class="question-card question-solve">
                             <div class="question-head">
                                 <span class="question-number"><?= $idx + 1 ?></span>
                                 <div class="question-main">
                                     <p class="question-title"><?= e($pyt['tresc']) ?></p>
+                                    <?php if ($wielokrotny): ?>
+                                        <p class="question-hint">Zaznacz wszystkie poprawne odpowiedzi.</p>
+                                    <?php endif; ?>
                                 </div>
                                 <span class="question-counter muted small"><?= $idx + 1 ?> z <?= $liczbaPytan ?></span>
                             </div>
@@ -502,7 +563,12 @@ layout_header('Testy', 'testy.php');
                                 <div class="answer-options">
                                     <?php foreach ($odpowiedzi as $i => $odp): ?>
                                         <label class="answer-option">
-                                            <input type="radio" name="odpowiedz[<?= $pytId ?>]" value="<?= (int) $odp['id'] ?>" data-answer>
+                                            <input
+                                                type="<?= $wielokrotny ? 'checkbox' : 'radio' ?>"
+                                                name="odpowiedz[<?= $pytId ?>]<?= $wielokrotny ? '[]' : '' ?>"
+                                                value="<?= (int) $odp['id'] ?>"
+                                                data-answer
+                                            >
                                             <span class="answer-letter"><?= $i < 26 ? chr(65 + $i) : (string) ($i + 1) ?></span>
                                             <span class="answer-text"><?= e($odp['tresc']) ?></span>
                                         </label>

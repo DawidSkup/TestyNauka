@@ -122,6 +122,32 @@ function db_migrate(PDO $pdo): void
     SQL);
 
     $pdo->exec(<<<'SQL'
+        CREATE TABLE IF NOT EXISTS prezentacje (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            tytul       TEXT    NOT NULL,
+            opis        TEXT    NOT NULL DEFAULT '',
+            status      TEXT    NOT NULL DEFAULT 'szkic',
+            autor_id    INTEGER,
+            created_at  TEXT    NOT NULL,
+            updated_at  TEXT    NOT NULL,
+            FOREIGN KEY (autor_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+    SQL);
+
+    $pdo->exec(<<<'SQL'
+        CREATE TABLE IF NOT EXISTS prezentacje_slajdy (
+            prezentacja_id INTEGER NOT NULL,
+            slajd_id       INTEGER NOT NULL,
+            kolejnosc      INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (prezentacja_id, slajd_id),
+            FOREIGN KEY (prezentacja_id) REFERENCES prezentacje(id) ON DELETE CASCADE,
+            FOREIGN KEY (slajd_id) REFERENCES slajdy(id) ON DELETE CASCADE
+        )
+    SQL);
+
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_prezentacje_slajdy ON prezentacje_slajdy(prezentacja_id, kolejnosc)');
+
+    $pdo->exec(<<<'SQL'
         CREATE TABLE IF NOT EXISTS testy (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             tytul       TEXT    NOT NULL,

@@ -905,6 +905,92 @@ check(
     (int) db_scalar('SELECT wynik FROM wyniki_testow WHERE test_id = ' . $testId . ' ORDER BY id DESC LIMIT 1') === 1
 );
 
+// Pytanie wielokrotnego wyboru: kilka poprawnych odpowiedzi.
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'dodaj_odpowiedz', 'test_id' => (string) $testId,
+    'pytanie_id' => (string) $pytanieId, 'tresc' => 'Odpowiedz B',
+]);
+$odpowiedzB = (int) db_scalar('SELECT id FROM odpowiedzi WHERE pytanie_id = ' . $pytanieId . ' ORDER BY id DESC LIMIT 1');
+check(
+    'Testy: dodanie drugiej odpowiedzi',
+    $odpowiedzB > 0 && str_contains($r['html'], 'Odpowiedz B') && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'przelacz_poprawna', 'test_id' => (string) $testId,
+    'odpowiedz_id' => (string) $odpowiedzB, 'poprawna' => '1',
+]);
+check(
+    'Testy: druga odpowiedz oznaczona jako poprawna',
+    (int) db_scalar('SELECT poprawna FROM odpowiedzi WHERE id = ' . $odpowiedzB) === 1
+    && str_contains($r['html'], 'wielokrotny wybór')
+    && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'rozwiaz', 'test_id' => (string) $testId,
+    'odpowiedz[' . $pytanieId . '][0]' => (string) $odpowiedzId,
+    'odpowiedz[' . $pytanieId . '][1]' => (string) $odpowiedzB,
+]);
+check(
+    'Testy: pelne zaznaczenie kilku poprawnych = 100%',
+    str_contains($r['html'], '100% poprawnych') && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'rozwiaz', 'test_id' => (string) $testId,
+    'odpowiedz[' . $pytanieId . '][0]' => (string) $odpowiedzId,
+]);
+check(
+    'Testy: czesciowe zaznaczenie = 0%',
+    str_contains($r['html'], '0% poprawnych') && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+
+$r = req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'przelacz_poprawna', 'test_id' => (string) $testId,
+    'odpowiedz_id' => (string) $odpowiedzB, 'poprawna' => '0',
+]);
+check(
+    'Testy: odpowiedz mozna odznaczyc jako niepoprawna',
+    (int) db_scalar('SELECT poprawna FROM odpowiedzi WHERE id = ' . $odpowiedzB) === 0
+    && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+
+// Przywróć dwie poprawne odpowiedzi i sprawdź widok rozwiązywania jako użytkownik.
+req('POST', $base . '/admin/testy.php', [
+    'csrf' => $token, 'akcja' => 'przelacz_poprawna', 'test_id' => (string) $testId,
+    'odpowiedz_id' => (string) $odpowiedzB, 'poprawna' => '1',
+]);
+
+$marketingId = (int) db_scalar("SELECT id FROM users WHERE email = 'marketing@firma.pl'");
+$kod = 'ABC123';
+db_read(
+    "INSERT INTO kody (user_id, kod, cel, wygasa_at, created_at)
+     VALUES ($marketingId, '$kod', 'logowanie', datetime('now', '+1 day'), datetime('now'))"
+);
+
+req('GET', $base . '/logout.php');
+$r = req('GET', $base . '/login.php?tryb=uzytkownik');
+$userToken = csrf($r['html']);
+$r = req('POST', $base . '/login.php', [
+    'csrf' => $userToken, 'tryb' => 'uzytkownik', 'kod' => $kod,
+], null, false);
+check('Testy: logowanie uzytkownika do widoku rozwiazywania', $r['status'] === 302, '(HTTP ' . $r['status'] . ')');
+
+$r = req('GET', $base . '/admin/testy.php?akcja=rozwiaz&test_id=' . $testId);
+check(
+    'Testy: pytanie wielokrotnego wyboru ma checkboxy',
+    str_contains($r['html'], 'type="checkbox"')
+    && str_contains($r['html'], 'Zaznacz wszystkie poprawne odpowiedzi')
+    && blad_php($r['html']) === '',
+    blad_php($r['html'])
+);
+
 echo "\n";
 echo 'ZALICZONE : ' . $wynik['ok'] . "\n";
 echo 'BLEDY     : ' . $wynik['blad'] . "\n";

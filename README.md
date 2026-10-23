@@ -51,6 +51,9 @@ i kodami) oraz **grupę materiałów** (dodawanie i edycja slajdów).
 - Dodawanie i edycja slajdów: tytuł, treść, obraz, układ, przycisk CTA,
   status publikacji, kolejność.
 - Podgląd slajdów w trybie prezentacji (nawigacja strzałkami).
+- **Testy wiedzy** – pytania z jedną lub kilkoma poprawnymi odpowiedziami. Administrator
+  oznacza poprawne odpowiedzi w edycji testu, a użytkownik przy pytaniu wielokrotnego
+  wyboru zaznacza wszystkie pasujące odpowiedzi. Wynik zapisuje się od razu po zakończeniu.
 
 ## Jak dodać nowego użytkownika
 
@@ -145,7 +148,7 @@ ukryty i odrzucany po stronie serwera).
 # 1. serwer deweloperski
 php -S 127.0.0.1:8099 -t C:\laragon\www\TestNauka
 
-# 2. testy integracyjne (78 sprawdzeń: HTTP + baza + Mailpit)
+# 2. testy integracyjne (110 sprawdzeń: HTTP + baza + Mailpit)
 php tools/testy.php
 ```
 

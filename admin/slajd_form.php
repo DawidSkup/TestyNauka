@@ -25,6 +25,19 @@ if ($id > 0) {
     $slajd = $stmt->fetch() ?: null;
 }
 
+$prezentacjaId = (int) ($_GET['prezentacja_id'] ?? ($_POST['prezentacja_id'] ?? 0));
+$prezentacja = null;
+
+if ($prezentacjaId > 0) {
+    $stmt = $pdo->prepare('SELECT id, tytul FROM prezentacje WHERE id = :id');
+    $stmt->execute([':id' => $prezentacjaId]);
+    $prezentacja = $stmt->fetch() ?: null;
+
+    if (!$prezentacja) {
+        $prezentacjaId = 0;
+    }
+}
+
 $values = [
     'tytul'    => $slajd['tytul'] ?? '',
     'tresc'    => $slajd['tresc'] ?? '',
@@ -127,6 +140,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':a'  => (int) $user['id'],
                     ':n'  => $now,
                 ]);
+                $nowySlajdId = (int) $pdo->lastInsertId();
+
+                if ($prezentacjaId > 0 && $prezentacja) {
+                    $stmt = $pdo->prepare(
+                        'SELECT COALESCE(MAX(kolejnosc), 0) FROM prezentacje_slajdy WHERE prezentacja_id = :id'
+                    );
+                    $stmt->execute([':id' => $prezentacjaId]);
+                    $kolejnoscPrezentacji = (int) $stmt->fetchColumn();
+
+                    $pdo->prepare(
+                        'INSERT OR IGNORE INTO prezentacje_slajdy (prezentacja_id, slajd_id, kolejnosc)
+                         VALUES (:prezentacja_id, :slajd_id, :kolejnosc)'
+                    )->execute([
+                        ':prezentacja_id' => $prezentacjaId,
+                        ':slajd_id'       => $nowySlajdId,
+                        ':kolejnosc'      => $kolejnoscPrezentacji + 1,
+                    ]);
+
+                    log_action('dodano_slajd', $values['tytul'], (int) $user['id']);
+                    flash('success', 'Slajd został dodany i przypisany do prezentacji „' . $prezentacja['tytul'] . '”.');
+                    redirect(app_url('admin/prezentacje.php?akcja=edytuj&id=' . $prezentacjaId));
+                }
+
                 log_action('dodano_slajd', $values['tytul'], (int) $user['id']);
                 flash('success', 'Slajd został dodany.');
             }
@@ -136,16 +172,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-layout_header($id > 0 ? 'Edycja slajdu' : 'Nowy slajd', 'materialy.php');
+$backUrl = $prezentacjaId > 0
+    ? app_url('admin/prezentacje.php?akcja=edytuj&id=' . $prezentacjaId)
+    : app_url('admin/materialy.php');
+$backLabel = $prezentacjaId > 0 ? '← Wróć do prezentacji' : '← Wróć do listy';
+
+layout_header($id > 0 ? 'Edycja slajdu' : 'Nowy slajd', $prezentacjaId > 0 ? 'prezentacje.php' : 'materialy.php');
 ?>
 
 <div class="page-toolbar">
     <p class="muted">
+        <?php if ($prezentacja): ?>
+            Nowy slajd zostanie dodany do prezentacji <strong><?= e($prezentacja['tytul']) ?></strong>.
+        <?php endif; ?>
         Materiał wprowadzany jest wyłącznie jako slajd: tytuł, treść, obraz (JPG/PNG/GIF/WEBP,
         maks. 5 MB), układ i opcjonalny przycisk.
     </p>
     <div class="page-toolbar-actions">
-        <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/materialy.php')) ?>">← Wróć do listy</a>
+        <a class="btn btn-ghost btn-sm" href="<?= e($backUrl) ?>"><?= e($backLabel) ?></a>
     </div>
 </div>
 
@@ -156,6 +200,9 @@ layout_header($id > 0 ? 'Edycja slajdu' : 'Nowy slajd', 'materialy.php');
 <section class="card">
     <form method="post" enctype="multipart/form-data" class="form-grid">
         <?= csrf_field() ?>
+        <?php if ($prezentacjaId > 0): ?>
+            <input type="hidden" name="prezentacja_id" value="<?= $prezentacjaId ?>">
+        <?php endif; ?>
 
         <div class="span-2">
             <label for="tytul">Tytuł slajdu *</label>
@@ -214,7 +261,7 @@ layout_header($id > 0 ? 'Edycja slajdu' : 'Nowy slajd', 'materialy.php');
             <button type="submit" class="btn btn-primary">
                 <?= $id > 0 ? 'Zapisz zmiany' : 'Dodaj slajd' ?>
             </button>
-            <a class="btn btn-ghost" href="<?= e(app_url('admin/materialy.php')) ?>">Anuluj</a>
+            <a class="btn btn-ghost" href="<?= e($backUrl) ?>">Anuluj</a>
         </div>
     </form>
 </section>

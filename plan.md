@@ -3,7 +3,7 @@
 > Dokument roboczy. Statusy aktualizowane na bieżąco.
 > Legenda: `[x]` zrobione · `[ ]` do zrobienia · `[~]` w trakcie · `[!]` problem/ryzyko
 
-**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona; testy integracyjne: 90/103 (13 znanych porażek poza sekcją Testy)**
+**Specyfikacja projektu:** [`AGENTS.md`](AGENTS.md) · **Status: realizacja zakończona; testy integracyjne: 97/110 (13 znanych porażek poza sekcją Testy)**
 
 ---
 
@@ -109,7 +109,7 @@
 
 ## Faza 9 – Testy i weryfikacja ✅
 
-- [x] `tools/testy.php` – 103 kontrole integracyjne na HTTP + bazę (90 zielonych, 13 znanych porażek poza sekcją Testy)
+- [x] `tools/testy.php` – 110 kontroli integracyjnych na HTTP + bazę (97 zielonych, 13 znanych porażek poza sekcją Testy)
 - [x] Uruchomienie serwera PHP i sprawdzenie braku błędów w logu
 - [x] Test logowania dla obu grup (`admin@firma.pl`, `marketing@firma.pl`)
 - [x] Test wyboru trybu logowania (Administrator = e-mail + hasło, Użytkownik = sam kod)
@@ -147,11 +147,13 @@
 - [x] `admin/testy.php` – tworzenie testu (nowy test jako szkic) i przejście od razu do edycji
 - [x] `admin/testy.php` – edycja ustawień testu i publikacja (`szkic` / `opublikowany`)
 - [x] `admin/testy.php` – dodawanie i usuwanie pytań z zachowaniem kolejności
-- [x] `admin/testy.php` – dodawanie i usuwanie odpowiedzi oraz wskazanie jednej poprawnej
+- [x] `admin/testy.php` – dodawanie i usuwanie odpowiedzi oraz oznaczanie jednej lub kilku
+      poprawnych (przełącznik „Poprawna” / „Niepoprawna”)
 - [x] `admin/testy.php` – walidacja tytułu, treści pytania i treści odpowiedzi
 - [x] `admin/testy.php` – usuwanie testu wraz z pytaniami, odpowiedziami i wynikami (kaskada)
 - [x] `admin/testy.php` – lista opublikowanych testów dla grupy `materialy`
-- [x] `admin/testy.php` – rozwiązywanie testu (jedna odpowiedź na pytanie)
+- [x] `admin/testy.php` – rozwiązywanie testu (jedna odpowiedź lub wiele przy pytaniu
+      wielokrotnego wyboru)
 - [x] `admin/testy.php` – zapis wyniku (`wynik`, `maks`, `procent`) i ekran wyniku
 - [x] `admin/testy.php` – `require_login()` oraz `require_group(GROUP_FIRMA)` dla zarządzania
 - [x] `admin/testy.php` – token CSRF dla wszystkich formularzy
@@ -169,6 +171,17 @@
 - [x] `admin/testy.php` – czytelne komunikaty i podpowiedzi przy tworzeniu testu
 - [x] `admin/testy.php` – ekran wyniku z komunikatem zależnym od procentu
 
+## Faza 13 – Pytania wielokrotnego wyboru ✅
+
+- [x] `admin/testy.php` – możliwość oznaczenia kilku odpowiedzi jako poprawnych w jednym pytaniu
+- [x] `admin/testy.php` – przełączanie „Poprawna” / „Niepoprawna” dla istniejących odpowiedzi
+- [x] `admin/testy.php` – podgląd liczby poprawnych odpowiedzi i oznaczenie „wielokrotny wybór”
+- [x] `admin/testy.php` – checkboxy przy rozwiązywaniu pytań z wieloma poprawnymi odpowiedziami
+- [x] `admin/testy.php` – punktacja za dokładne zaznaczenie wszystkich poprawnych odpowiedzi
+- [x] `assets/app.js` – licznik postępu liczony per pytanie (nie per zaznaczona odpowiedź)
+- [x] `assets/style.css` – obsługa checkboxów, akcji przy odpowiedziach i podpowiedzi
+- [x] `AGENTS.md`, `README.md` – opis pytań jedno- i wielokrotnego wyboru
+
 ---
 
 ## Podsumowanie postępu
@@ -184,12 +197,13 @@
 | 6. Materiały (slajdy) | ✅ zrobione | tylko slajdy, upload, kolejność, podgląd |
 | 7. API i JavaScript | ✅ zrobione | `api/kod.php`, `assets/app.js` |
 | 8. Warstwa wizualna | ✅ zrobione | `assets/style.css` (także komponenty testów) |
-| 9. Testy | ✅ zrobione | 90/103 zielonych (`php tools/testy.php`), 13 znanych porażek poza Testami |
+| 9. Testy | ✅ zrobione | 97/110 zielonych (`php tools/testy.php`), 13 znanych porażek poza Testami |
 | 10. Dokumentacja | ✅ zrobione | `README.md`, `AGENTS.md`, `plan.md` |
 | 11. Testy wiedzy | ✅ zrobione | `admin/testy.php`, tabele testów w `db.php` |
 | 12. Wygląd i przejrzystość testów | ✅ zrobione | `assets/style.css`, `assets/app.js`, `admin/testy.php` |
+| 13. Pytania wielokrotnego wyboru | ✅ zrobione | kilka poprawnych odpowiedzi, checkboxy, punktacja |
 
-**Wykonano:** 116 / 116 zadań
+**Wykonano:** 124 / 124 zadań
 
 ## Znalezione i naprawione błędy
 
@@ -237,4 +251,4 @@ Poniższe 13 kontroli `tools/testy.php` nie przechodzi również na wersji sprze
 - `Kod rejestracyjny staje się stałym kodem logowania`
 - `Zmiana statusu slajdu`, `Zmiana kolejnosci slajdu`, `Edycja slajdu`, `Usuniecie slajdu`
 
-Sekcja Testy: **13/13 zielonych**. Cały zestaw: **90/103** (stan na ostatni przebieg).
+Sekcja Testy: **20/20 zielonych**. Cały zestaw: **97/110** (stan na ostatni przebieg).

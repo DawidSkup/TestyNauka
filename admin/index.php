@@ -87,7 +87,11 @@ if ((string) $user['grupa'] === GROUP_MATERIALY) {
             <h2 class="card-title">Twoja grupa</h2>
             <p class="stat-value stat-value-sm"><?= e(GROUPS[$user['grupa']] ?? $user['grupa']) ?></p>
             <p class="muted"><?= e($user['email']) ?></p>
-            <p class="muted small">Dostęp tylko do podglądu slajdów.</p>
+            <p class="muted small">Dostęp do opublikowanych prezentacji i testów.</p>
+            <div class="quick-links">
+                <a class="btn btn-primary btn-sm" href="<?= e(app_url('admin/prezentacje.php')) ?>">Otwórz prezentacje</a>
+                <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/testy.php')) ?>">Rozwiąż test</a>
+            </div>
         </div>
 
         <div class="card">
@@ -133,7 +137,7 @@ layout_header('Panel startowy', 'index.php');
         <span class="stat-hint"><?= e((string) $statActive) ?> aktywnych kont</span>
     </div>
     <div class="card stat">
-        <span class="stat-label">Materiały (slajdy)</span>
+        <span class="stat-label">Prezentacje</span>
         <span class="stat-value"><?= e((string) $statSlajdy) ?></span>
         <span class="stat-hint"><?= e((string) $statPublik) ?> opublikowanych</span>
     </div>
@@ -210,12 +214,10 @@ layout_header('Panel startowy', 'index.php');
     <div class="card">
         <h2 class="card-title">Skróty</h2>
         <div class="quick-links">
-            <a class="btn btn-ghost" href="<?= e(app_url('admin/materialy.php')) ?>">Materiały (slajdy)</a>
+            <a class="btn btn-ghost" href="<?= e(app_url('admin/prezentacje.php')) ?>">Prezentacje</a>
             <a class="btn btn-ghost" href="<?= e(app_url('admin/slajd_form.php')) ?>">+ Dodaj slajd</a>
-            <a class="btn btn-ghost" href="<?= e(app_url('admin/podglad.php')) ?>">Podgląd slajdów</a>
-            <?php if (in_group(GROUP_FIRMA)): ?>
-                <a class="btn btn-ghost" href="<?= e(app_url('admin/uzytkownicy.php')) ?>">Zarządzaj użytkownikami</a>
-            <?php endif; ?>
+            <a class="btn btn-ghost" href="<?= e(app_url('admin/testy.php')) ?>">Testy</a>
+            <a class="btn btn-ghost" href="<?= e(app_url('admin/uzytkownicy.php')) ?>">Użytkownicy</a>
         </div>
 
         <h3 class="card-subtitle">Ostatnie zdarzenia</h3>

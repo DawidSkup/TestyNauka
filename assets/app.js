@@ -48,6 +48,18 @@
     });
 
     /* ---------------------------------------------------------------- */
+    /* Zaznacz wszystkie (np. lista slajdów do dodania)                  */
+    /* ---------------------------------------------------------------- */
+    document.querySelectorAll('[data-check-all]').forEach(function (master) {
+        master.addEventListener('change', function () {
+            const scope = master.closest('form') || document;
+            scope.querySelectorAll('[data-check-item]').forEach(function (item) {
+                item.checked = master.checked;
+            });
+        });
+    });
+
+    /* ---------------------------------------------------------------- */
     /* Mobilne menu (sidebar)                                           */
     /* ---------------------------------------------------------------- */
     const navToggle = document.getElementById('navToggle');
@@ -117,7 +129,12 @@
         const label = document.getElementById('testProgressLabel');
 
         function answeredCount() {
-            return testForm.querySelectorAll('input[data-answer]:checked').length;
+            const answered = new Set();
+            testForm.querySelectorAll('input[data-answer]:checked').forEach(function (input) {
+                const card = input.closest('.question-solve');
+                if (card) answered.add(card);
+            });
+            return answered.size;
         }
 
         function updateTestProgress() {
@@ -129,7 +146,7 @@
         testForm.querySelectorAll('input[data-answer]').forEach(function (input) {
             input.addEventListener('change', function () {
                 const card = input.closest('.question-solve');
-                if (card) card.classList.add('is-answered');
+                if (card) card.classList.toggle('is-answered', !!card.querySelector('input[data-answer]:checked'));
                 updateTestProgress();
             });
         });

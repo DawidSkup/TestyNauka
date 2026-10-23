@@ -92,16 +92,19 @@ Zarządzanie materiałami (`admin/materialy.php`, `admin/slajd_form.php`) należ
 
 ## 3a. Testy wiedzy
 
-Sekcja `Testy` (`admin/testy.php`) pozwala grupie `firma` tworzyć testy jednokrotnego wyboru,
-a grupie `materialy` – rozwiązywać opublikowane testy i od razu widzieć wynik.
+Sekcja `Testy` (`admin/testy.php`) pozwala grupie `firma` tworzyć testy z pytaniami jedno-
+lub wielokrotnego wyboru, a grupie `materialy` – rozwiązywać opublikowane testy i od razu
+widzieć wynik.
 
 **Struktura testu:**
 
 - test: tytuł (wymagany), opis, status `szkic` / `opublikowany`, autor, daty utworzenia i edycji,
 - pytanie: treść (wymagana) i kolejność w teście,
-- odpowiedź: treść (wymagana), kolejność i flaga `poprawna` – w pytaniu może być **tylko jedna**
-  poprawna odpowiedź (zaznaczenie nowej zdejmuje oznaczenie z poprzedniej),
-- wynik: użytkownik, test, liczba poprawnych odpowiedzi, liczba pytań i procent.
+- odpowiedź: treść (wymagana), kolejność i flaga `poprawna` – w pytaniu może być **jedna lub
+  kilka** poprawnych odpowiedzi; pytanie z więcej niż jedną poprawną odpowiedzią jest pytaniem
+  wielokrotnego wyboru,
+- wynik: użytkownik, test, liczba poprawnych odpowiedzi, liczba pytań i procent (pytanie jest
+  zaliczone tylko wtedy, gdy zaznaczono dokładnie wszystkie poprawne odpowiedzi i żadnej błędnej).
 
 **Zarządzanie (grupa `firma`):**
 
@@ -110,7 +113,8 @@ a grupie `materialy` – rozwiązywać opublikowane testy i od razu widzieć wyn
 - utworzenie testu – nowy test zapisuje się jako `szkic` i od razu otwiera edycję,
 - edycja ustawień i publikacja; publikacja jest jedynym sposobem udostępnienia testu
   użytkownikom grupy `materialy`,
-- dodawanie i usuwanie pytań oraz odpowiedzi, wskazywanie poprawnej odpowiedzi,
+- dodawanie i usuwanie pytań oraz odpowiedzi, oznaczanie i odznaczanie odpowiedzi jako
+  poprawnych (w tym kilku w jednym pytaniu),
 - usunięcie testu usuwa kaskadowo pytania, odpowiedzi i wyniki,
 - ostrzeżenia w interfejsie: „brak poprawnej odpowiedzi” przy pytaniu, „brak pytań”
   przy opublikowanym teście (system nie blokuje publikacji – to komunikat dla administratora).
@@ -118,8 +122,9 @@ a grupie `materialy` – rozwiązywać opublikowane testy i od razu widzieć wyn
 **Rozwiązywanie (grupa `materialy`):**
 
 - widoczne są wyłącznie testy o statusie `opublikowany`,
-- jedno pytanie = jedna wybrana odpowiedź; formularz pokazuje numer pytania i licznik
-  „x z y”, a pasek postępu aktualizuje się na żywo,
+- jedno pytanie z jedną poprawną odpowiedzią = jedna wybrana odpowiedź; przy kilku poprawnych
+  odpowiedziach użytkownik zaznacza wszystkie pasujące (pola wyboru). Formularz pokazuje numer
+  pytania i licznik „x z y”, a pasek postępu aktualizuje się na żywo,
 - przed zakończeniem testu z brakującymi odpowiedziami wyświetlane jest potwierdzenie,
 - po wysłaniu odpowiedzi zapisywany jest wynik, a użytkownik trafia na ekran wyniku:
   liczba punktów, procent, pasek postępu, komunikat zależny od wyniku oraz przyciski
@@ -129,7 +134,7 @@ a grupie `materialy` – rozwiązywać opublikowane testy i od razu widzieć wyn
 **Wygląd i przejrzystość:**
 
 - karty pytań z numeracją, odpowiedzi jako klikalne opcje z literami A/B/C i podświetleniem
-  wyboru, poprawna odpowiedź wyróżniona na zielono w widoku edycji,
+  wyboru, poprawne odpowiedzi wyróżnione na zielono w widoku edycji,
 - kafelki statystyk, badge statusu, sekcje „Ustawienia testu” i „Dodaj pytanie”,
 - widoki responsywne (mobile), spójne z resztą panelu.
 
@@ -293,17 +298,21 @@ TestyNauka/
       i **„Użytkownicy”** (grupa `materialy`); zmiana grupy przenosi konto między listami.
 - [x] Panel nie generuje błędów PHP – testy wykrywają ostrzeżenia (`Warning`, `Notice`,
       `Deprecated`) i niezdefiniowane klucze w renderowanych stronach.
-- [x] Grupa `firma` tworzy test, dodaje pytania i odpowiedzi, wskazuje poprawną odpowiedź,
-      publikuje i usuwa test; nowy test jest szkicem i nie jest widoczny dla użytkowników.
-- [x] Grupa `materialy` widzi wyłącznie opublikowane testy, rozwiązuje je (jedna odpowiedź
-      na pytanie) i otrzymuje wynik zapisany w `wyniki_testow`.
+- [x] Grupa `firma` tworzy test, dodaje pytania i odpowiedzi, oznacza jedną lub kilka
+      poprawnych odpowiedzi, publikuje i usuwa test; nowy test jest szkicem i nie jest widoczny
+      dla użytkowników.
+- [x] Grupa `materialy` widzi wyłącznie opublikowane testy, rozwiązuje je (przy jednej poprawnej
+      odpowiedzi – jedna odpowiedź, przy kilku – wszystkie poprawne) i otrzymuje wynik zapisany
+      w `wyniki_testow`.
 - [x] Ekran wyniku pokazuje liczbę punktów, procent, pasek postępu i komunikat dopasowany
       do wyniku; użytkownik może rozwiązać test ponownie.
 - [x] Operacje zarządzania testami wymagają zalogowania i grupy `firma`; formularze bez tokenu
       CSRF są odrzucane (HTTP 400).
 - [x] Widoki testów są czytelne i responsywne: karty pytań, klikalne odpowiedzi, licznik
       postępu oraz ostrzeżenie przed zakończeniem testu z brakującymi odpowiedziami.
+- [x] Pytanie może mieć kilka poprawnych odpowiedzi: administrator oznacza je w edycji testu,
+      a użytkownik zaznacza wszystkie poprawne (punkty tylko za pełne, poprawne zaznaczenie).
 
 Status realizacji: **wszystkie kryteria spełnione**. Test integracyjny `php tools/testy.php`
-obejmuje 103 kontrole: **90 zielonych**, 13 znanych porażek **poza sekcją Testy** (slajdy,
-upload, rejestracja) – sekcja Testy: **13/13 zielonych**.
+obejmuje 110 kontroli: **97 zielonych**, 13 znanych porażek **poza sekcją Testy** (slajdy,
+upload, rejestracja) – sekcja Testy: **20/20 zielonych**.
