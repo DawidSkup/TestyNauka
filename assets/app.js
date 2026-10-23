@@ -257,6 +257,7 @@
             if (!fsBtn) return;
             const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
             const isFs = !!fsElement;
+            console.log('[Fullscreen] updateFullscreenButton, isFs=', isFs, 'element=', fsElement);
             fsBtn.textContent = isFs ? '⛶' : '⛶';
             fsBtn.setAttribute('aria-label', isFs ? 'Wyjdź z pełnego ekranu' : 'Pełny ekran');
             fsBtn.title = isFs ? 'Wyjdź z pełnego ekranu' : 'Pełny ekran (F)';
@@ -264,18 +265,30 @@
 
         function toggleFullscreen() {
             const elem = document.querySelector('.page-preview');
-            if (!elem) return;
-            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+            if (!elem) {
+                console.warn('[Fullscreen] .page-preview element not found');
+                return;
+            }
+            const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+            if (!fsElement) {
+                console.log('[Fullscreen] Requesting fullscreen on', elem);
                 if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(function () { /* ignoruj */ });
+                    elem.requestFullscreen().then(function() {
+                        console.log('[Fullscreen] Fullscreen entered');
+                    }).catch(function(err) {
+                        console.error('[Fullscreen] requestFullscreen failed:', err);
+                    });
                 } else if (elem.webkitRequestFullscreen) {
                     elem.webkitRequestFullscreen();
                 } else if (elem.msRequestFullscreen) {
                     elem.msRequestFullscreen();
                 }
             } else {
+                console.log('[Fullscreen] Exiting fullscreen');
                 if (document.exitFullscreen) {
-                    document.exitFullscreen().catch(function () { /* ignoruj */ });
+                    document.exitFullscreen().catch(function(err) {
+                        console.error('[Fullscreen] exitFullscreen failed:', err);
+                    });
                 } else if (document.webkitExitFullscreen) {
                     document.webkitExitFullscreen();
                 } else if (document.msExitFullscreen) {
@@ -285,10 +298,23 @@
         }
 
         if (fsBtn) {
-            fsBtn.addEventListener('click', toggleFullscreen);
-            document.addEventListener('fullscreenchange', updateFullscreenButton);
-            document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
-            document.addEventListener('msfullscreenchange', updateFullscreenButton);
+            fsBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('[Fullscreen] Button clicked');
+                toggleFullscreen();
+            });
+            document.addEventListener('fullscreenchange', function() {
+                console.log('[Fullscreen] fullscreenchange event');
+                updateFullscreenButton();
+            });
+            document.addEventListener('webkitfullscreenchange', function() {
+                console.log('[Fullscreen] webkitfullscreenchange event');
+                updateFullscreenButton();
+            });
+            document.addEventListener('msfullscreenchange', function() {
+                console.log('[Fullscreen] msfullscreenchange event');
+                updateFullscreenButton();
+            });
         }
 
         document.addEventListener('keydown', function (ev) {
@@ -297,8 +323,10 @@
             } else if (ev.key === 'ArrowLeft' || ev.key === 'PageUp') {
                 ev.preventDefault(); show(index - 1);
             } else if (ev.key === 'Escape') {
-                if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+                const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+                if (fsElement) {
                     ev.preventDefault();
+                    console.log('[Fullscreen] Escape in fullscreen, exiting');
                     if (document.exitFullscreen) document.exitFullscreen().catch(function () {});
                     else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                     else if (document.msExitFullscreen) document.msExitFullscreen();
@@ -308,6 +336,7 @@
             } else if (ev.key === 'f' || ev.key === 'F') {
                 if (!ev.ctrlKey && !ev.metaKey && !ev.altKey) {
                     ev.preventDefault();
+                    console.log('[Fullscreen] F key pressed');
                     toggleFullscreen();
                 }
             }
