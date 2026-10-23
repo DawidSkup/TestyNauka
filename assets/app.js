@@ -168,6 +168,10 @@
     if (stage) {
         const slides = Array.prototype.slice.call(stage.querySelectorAll('.slide'));
         const counter = document.getElementById('previewCounter');
+        const prevBtn = document.getElementById('previewPrev');
+        const nextBtn = document.getElementById('previewNext');
+        const fsBtn = document.getElementById('previewFullscreen');
+        const backLink = document.getElementById('previewBack');
         let index = 0;
 
         function show(i) {
@@ -177,10 +181,45 @@
             if (counter) counter.textContent = (index + 1) + ' / ' + slides.length;
         }
 
-        const prev = document.getElementById('previewPrev');
-        const next = document.getElementById('previewNext');
-        if (prev) prev.addEventListener('click', function () { show(index - 1); });
-        if (next) next.addEventListener('click', function () { show(index + 1); });
+        if (prevBtn) prevBtn.addEventListener('click', function () { show(index - 1); });
+        if (nextBtn) nextBtn.addEventListener('click', function () { show(index + 1); });
+
+        /* Pełny ekran */
+        function updateFullscreenButton() {
+            if (!fsBtn) return;
+            const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+            fsBtn.textContent = isFs ? '⛶' : '⛶';
+            fsBtn.setAttribute('aria-label', isFs ? 'Wyjdź z pełnego ekranu' : 'Pełny ekran');
+            fsBtn.title = isFs ? 'Wyjdź z pełnego ekranu' : 'Pełny ekran (F)';
+        }
+
+        function toggleFullscreen() {
+            const elem = document.documentElement;
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(function () { /* ignoruj */ });
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(function () { /* ignoruj */ });
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        if (fsBtn) {
+            fsBtn.addEventListener('click', toggleFullscreen);
+            document.addEventListener('fullscreenchange', updateFullscreenButton);
+            document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+            document.addEventListener('msfullscreenchange', updateFullscreenButton);
+        }
 
         document.addEventListener('keydown', function (ev) {
             if (ev.key === 'ArrowRight' || ev.key === ' ' || ev.key === 'PageDown') {
@@ -188,9 +227,19 @@
             } else if (ev.key === 'ArrowLeft' || ev.key === 'PageUp') {
                 ev.preventDefault(); show(index - 1);
             } else if (ev.key === 'Escape') {
-                window.location.href = document.getElementById('previewBack')
-                    ? document.getElementById('previewBack').getAttribute('href')
-                    : window.location.href;
+                if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+                    ev.preventDefault();
+                    if (document.exitFullscreen) document.exitFullscreen().catch(function () {});
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                    else if (document.msExitFullscreen) document.msExitFullscreen();
+                } else if (backLink) {
+                    window.location.href = backLink.getAttribute('href');
+                }
+            } else if (ev.key === 'f' || ev.key === 'F') {
+                if (!ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+                    ev.preventDefault();
+                    toggleFullscreen();
+                }
             }
         });
 

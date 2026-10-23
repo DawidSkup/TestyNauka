@@ -83,7 +83,7 @@ $uklady = [
 </head>
 <body class="page-preview">
 <header class="preview-bar">
-    <a class="btn btn-ghost btn-sm" href="<?= e($backUrl) ?>"><?= e($backLabel) ?></a>
+    <a class="btn btn-ghost btn-sm" href="<?= e($backUrl) ?>" id="previewBack"><?= e($backLabel) ?></a>
     <span class="preview-title"><?= e($tytul) ?></span>
     <span class="preview-counter" id="previewCounter">0 / 0</span>
     <?php if ($isFirma): ?>
@@ -93,6 +93,7 @@ $uklady = [
             <a class="btn btn-ghost btn-sm" href="<?= e($statusUrl . 'wszystkie') ?>">Pokaż też szkice</a>
         <?php endif; ?>
     <?php endif; ?>
+    <button type="button" class="btn btn-ghost btn-sm" id="previewFullscreen" aria-label="Pełny ekran">⛶</button>
     <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/prezentacje.php')) ?>">Prezentacje</a>
 </header>
 
