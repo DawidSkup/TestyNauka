@@ -562,9 +562,22 @@ select { cursor: pointer; }
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     margin-top: 14px; padding-top: 14px;
     border-top: 1px dashed var(--border);
+    background: var(--surface-2);
+    padding: 14px;
+    border-radius: var(--radius-sm);
 }
 .answer-form input[type="text"] { flex: 1 1 220px; width: auto; min-width: 180px; }
 .answer-form .btn { flex: 0 0 auto; }
+.answer-form .check-inline { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Formularz dodawania pytania */
+.question-create-form {
+    background: var(--primary-soft);
+    border: 1px solid var(--primary);
+    padding: 18px;
+    border-radius: var(--radius);
+}
+.question-create-form .form-field textarea { resize: vertical; min-height: 70px; }
 
 .answer-options { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
 .answer-option {

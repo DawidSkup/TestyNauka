@@ -382,17 +382,17 @@ layout_header('Testy', 'testy.php');
         <div class="card-header">
             <div>
                 <h2 class="card-title">Dodaj pytanie</h2>
-                <p class="card-subtitle">Wpisz treść pytania, a następnie dodaj do niego odpowiedzi i wskaż poprawną (możesz wskazać kilka).</p>
+                <p class="card-subtitle">Wpisz treść pytania i od razu dodaj do niego odpowiedzi.</p>
             </div>
         </div>
-        <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="form-grid">
+        <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="form-grid question-create-form">
             <?= csrf_field() ?>
             <input type="hidden" name="akcja" value="dodaj_pytanie">
             <input type="hidden" name="test_id" value="<?= (int) $test['id'] ?>">
 
             <label class="form-field form-field-full">
                 <span>Treść pytania <em class="req">*</em></span>
-                <input type="text" name="tresc" placeholder="np. Który dokument potwierdza zawarcie umowy?" required>
+                <textarea name="tresc" rows="2" placeholder="np. Który dokument potwierdza zawarcie umowy?" required></textarea>
             </label>
 
             <div class="form-actions">
@@ -491,11 +491,11 @@ layout_header('Testy', 'testy.php');
                         <input type="text" name="tresc" placeholder="Treść odpowiedzi" required>
                         <label class="check-inline">
                             <input type="checkbox" name="poprawna">
-                            Poprawna
+                            <span>Poprawna</span>
                         </label>
-                        <button class="btn btn-sm" type="submit">+ Dodaj odpowiedź</button>
+                        <button class="btn btn-sm btn-primary" type="submit">+ Dodaj</button>
                     </form>
-                    <p class="form-hint">W jednym pytaniu można zaznaczyć kilka odpowiedzi jako poprawne. Przy rozwiązywaniu użytkownik musi zaznaczyć wszystkie poprawne odpowiedzi.</p>
+                    <p class="form-hint">Możesz dodać wiele odpowiedzi i zaznaczyć kilka jako poprawne. Przy rozwiązywaniu użytkownik musi zaznaczyć wszystkie poprawne odpowiedzi.</p>
                 </article>
             <?php endforeach; ?>
         </div>
