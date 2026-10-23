@@ -32,10 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nextNum = (int) $stmt->fetchColumn();
         $tytul = 'Test ' . $nextNum;
 
-        $stmt = $pdo->prepare('INSERT INTO testy (tytul, opis, status, autor_id, created_at, updated_at) VALUES (:tytul, :opis, "szkic", :autor_id, :now, :now)');
+        $stmt = $pdo->prepare('INSERT INTO testy (tytul, opis, status, autor_id, created_at, updated_at) VALUES (:tytul, :opis, "opublikowany", :autor_id, :now, :now)');
         $stmt->execute([':tytul' => $tytul, ':opis' => $opis, ':autor_id' => (int) $user['id'], ':now' => $now]);
         $newId = (int) $pdo->lastInsertId();
-        flash('success', 'Test dodany. Dodaj teraz pytania i odpowiedzi.');
+        flash('success', 'Test dodany i opublikowany. Dodaj teraz pytania i odpowiedzi.');
         redirect(app_url('admin/testy.php?akcja=edytuj&test_id=' . $newId));
     }
 
@@ -675,7 +675,7 @@ layout_header('Testy', 'testy.php');
             <div class="card-header">
                 <div>
                     <h2 class="card-title">Nowy test</h2>
-                    <p class="card-subtitle">Utwórz test, a następnie dodaj pytania i odpowiedzi. Nowy test zapisuje się jako szkic.</p>
+                    <p class="card-subtitle">Utwórz test, a następnie dodaj pytania i odpowiedzi. Nowy test jest od razu opublikowany.</p>
                 </div>
             </div>
             <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="form-grid">

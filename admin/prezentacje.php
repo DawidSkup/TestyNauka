@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmt = $pdo->prepare(
             'INSERT INTO prezentacje (tytul, opis, status, autor_id, created_at, updated_at)
-             VALUES (:tytul, :opis, "szkic", :autor_id, :now, :now)'
+             VALUES (:tytul, :opis, "opublikowany", :autor_id, :now, :now)'
         );
         $stmt->execute([
             ':tytul'     => $tytul,
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nowaId = (int) $pdo->lastInsertId();
 
         log_action('dodano_prezentacje', $tytul, (int) $user['id']);
-        flash('success', 'Prezentacja dodana. Dodaj do niej slajdy.');
+        flash('success', 'Prezentacja dodana i opublikowana. Dodaj do niej slajdy.');
         redirect(app_url('admin/prezentacje.php?akcja=edytuj&id=' . $nowaId));
     }
 
@@ -527,7 +527,7 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
             <div class="card-header">
                 <div>
                     <h2 class="card-title">Nowa prezentacja</h2>
-                    <p class="card-subtitle">Utwórz prezentację, a następnie przypisz do niej slajdy. Nowa prezentacja zapisuje się jako szkic.</p>
+                    <p class="card-subtitle">Utwórz prezentację, a następnie przypisz do niej slajdy. Nowa prezentacja jest od razu opublikowana.</p>
                 </div>
             </div>
             <form method="post" action="<?= e(app_url('admin/prezentacje.php')) ?>" class="form-grid">
