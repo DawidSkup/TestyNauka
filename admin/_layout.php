@@ -15,7 +15,7 @@ function layout_header(string $title, string $active = ''): void
         ['url' => 'index.php',       'label' => 'Panel startowy', 'grp' => null,             'icon' => '▤'],
         ['url' => 'prezentacje.php', 'label' => 'Prezentacje',    'grp' => null,             'icon' => '▶'],
         ['url' => 'testy.php',       'label' => 'Testy',         'grp' => null,             'icon' => '✓'],
-        ['url' => 'uzytkownicy.php', 'label' => 'Użytkownicy',    'grp' => null,      'icon' => '☰'],
+        ['url' => 'uzytkownicy.php', 'label' => 'Użytkownicy',    'grp' => GROUP_FIRMA,      'icon' => '☰'],
         ['url' => 'wyniki.php', 'label' => 'Wyniki',        'grp' => null,      'icon' => '📊'],
     ];
     ?>
