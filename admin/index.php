@@ -202,7 +202,7 @@ layout_header('Panel startowy', 'index.php');
                 <?php foreach ($users as $u): ?>
                     <tr>
                         <td>
-                            <strong><?= e($u['imie'] . ' ' . (($u['nazwisko'] ?? '') ? ' ' . $u['nazwisko'] : '')) ?></strong><br>
+                            <strong><?= e($u['imie']) ?></strong><br>
                             <span class="muted small"><?= e($u['email']) ?></span>
                             <span class="muted small">(<?= e($u['grupa'] ?? 'brak') ?>)</span>
                         </td>
