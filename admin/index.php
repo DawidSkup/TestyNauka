@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/_layout.php';
+require_once __DIR__ . '/helpers.php';
 
 require_login();
 
@@ -152,6 +153,11 @@ layout_header('Panel startowy', 'index.php');
         <span class="stat-label">Twoja grupa</span>
         <span class="stat-value stat-value-sm"><?= e(GROUPS[$user['grupa']] ?? $user['grupa']) ?></span>
         <span class="stat-hint"><?= e($user['email']) ?></span>
+    </div>
+    <div class="card stat">
+        <span class="stat-label">Twoje testy</span>
+        <span class="stat-value"><?= e(count(wyniki_uzytkownika($pdo, (int) $user['id']))) ?></span>
+        <span class="stat-hint">rozwiązanych testów</span>
     </div>
 </section>
 
