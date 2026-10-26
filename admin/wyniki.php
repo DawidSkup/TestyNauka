@@ -9,7 +9,7 @@ $pdo = db();
 $user = current_user();
 
 /* Pobierz wszystkich użytkowników */
-$stmtUsers = $pdo->query("SELECT u.id, u.imie, u.email, u.grupa FROM users u ORDER BY u.imie COLLATE NOCASE");
+$stmtUsers = $pdo->query("SELECT u.id, u.imie, u.email, u.grupa FROM users u WHERE u.grupa != 'firma' ORDER BY u.imie COLLATE NOCASE");
 $users = $stmtUsers->fetchAll();
 
 /* Pobierz wszystkie opublikowane testy z numerami */
