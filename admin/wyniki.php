@@ -26,9 +26,6 @@ ksort($numeryTestow);
 
 <section class="page panel">
     <div class="layout">
-        <aside class="sidebar">
-            <?php include __DIR__ . '/_sidebar.php'; ?>
-        </aside>
         <main class="content">
             <div class="page-header">
                 <h1 class="page-title">Wyniki wszystkich użytkowników</h1>
