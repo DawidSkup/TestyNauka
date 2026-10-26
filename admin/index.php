@@ -235,6 +235,13 @@ layout_header('Panel startowy', 'index.php');
         <span class="stat-hint">rozwiązanych testów</span>
     </div>
 
+    <!-- Statystyka rozwiązanych testów przez bieżącego użytkownika -->
+    <div class="card stat">
+        <span class="stat-label">Twoje rozwiązane testy</span>
+        <span class="stat-value"><?= e(count(wyniki_uzytkownika($pdo, (int) $user['id']))) ?></span>
+        <span class="stat-hint">rozwiązanych testów</span>
+    </div>
+
     <?php if (in_group(GROUP_FIRMA)): ?>
     <div class="card stat">
         <span class="stat-label">Twoje rozwiązane testy</span>
