@@ -543,7 +543,7 @@ layout_header('Testy', 'testy.php');
                         </ul>
                     <?php endif; ?>
 
-                    <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="answer-form">
+                    <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="answer-form inline">
                         <?= csrf_field() ?>
                         <input type="hidden" name="akcja" value="dodaj_odpowiedz">
                         <input type="hidden" name="test_id" value="<?= (int) $test['id'] ?>">
@@ -555,34 +555,36 @@ layout_header('Testy', 'testy.php');
                         </label>
                         <button class="btn btn-sm btn-primary" type="submit">+ Dodaj</button>
                     </form>
-                    <p class="form-hint">Możesz dodać wiele odpowiedzi i zaznaczyć kilka jako poprawne. Przy rozwiązywaniu użytkownik musi zaznaczyć wszystkie poprawne odpowiedzi.</p>
+                    <p class="form-hint inline">Możesz dodać wiele odpowiedzi i zaznaczyć kilka jako poprawne. Przy rozwiązywaniu użytkownik musi zaznaczyć wszystkie poprawne odpowiedzi.</p>
+                    <button class="btn btn-sm btn-secondary" data-modal-open="#modalDodajOdpowiedź">Dodaj jako popup</button>
                 </article>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
 
-    <!-- Modal: Dodaj pytanie -->
-    <dialog id="modalDodajPytanie" class="modal">
+    <!-- Modal: Dodaj odpowiedź -->
+    <dialog id="modalDodajOdpowiedź" class="modal">
         <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="modal-content">
             <?= csrf_field() ?>
-            <input type="hidden" name="akcja" value="dodaj_pytanie">
+            <input type="hidden" name="akcja" value="dodaj_odpowiedz">
             <input type="hidden" name="test_id" value="<?= (int) $test['id'] ?>">
+            <input type="hidden" name="pytanie_id" value="<?= $pytId ?>">
 
             <header class="modal-header">
-                <h3>Nowe pytanie</h3>
+                <h3>Nowa odpowiedź</h3>
                 <button type="button" class="modal-close" data-modal-close aria-label="Zamknij">&times;</button>
             </header>
 
             <div class="modal-body">
                 <label class="form-field form-field-full">
-                    <span>Treść pytania <em class="req">*</em></span>
-                    <textarea name="tresc" rows="3" placeholder="np. Który dokument potwierdza zawarcie umowy?" required></textarea>
+                    <span>Treść odpowiedzi <em class="req">*</em></span>
+                    <textarea name="tresc" rows="3" placeholder="np. Poprawna odpowiedź" required></textarea>
                 </label>
             </div>
 
             <footer class="modal-footer">
                 <button type="button" class="btn btn-ghost" data-modal-close>Anuluj</button>
-                <button type="submit" class="btn btn-primary">+ Dodaj pytanie</button>
+                <button type="submit" class="btn btn-primary">+ Dodaj</button>
             </footer>
         </form>
     </dialog>
