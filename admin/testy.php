@@ -158,6 +158,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect(app_url('admin/testy.php'));
             }
 
+            // Test można rozwiązać tylko raz – kolejna próba pokazuje zapisany wynik.
+            $wynikiUzytkownika = wyniki_uzytkownika($pdo, (int) $user['id']);
+            if (isset($wynikiUzytkownika[$testId])) {
+                flash('info', 'Ten test możesz rozwiązać tylko raz. Pokazuję zapisany wynik.');
+                redirect(app_url('admin/testy.php?akcja=wynik&test_id=' . $testId));
+            }
+
             $blokada = blokujaca_prezentacja(
                 (string) $testDoSprawdzenia['tytul'],
                 prezentacje_wg_numeru($pdo),
@@ -228,6 +235,7 @@ $odpowiedziWgPytania = [];
 $wynik = null;
 $testy = [];
 $blokady = [];
+$wynikiUzytkownika = [];
 
 /** Pobiera odpowiedzi dla listy pytań i grupuje je po pytaniu. */
 function testy_odpowiedzi(PDO $pdo, array $pytania): array
@@ -274,6 +282,13 @@ if ($action === 'edytuj' && $testId > 0) {
     if (!$test) {
         flash('error', 'Test nie jest dostępny.');
         redirect(app_url('admin/testy.php'));
+    }
+
+    // Test można rozwiązać tylko raz – kolejna próba pokazuje zapisany wynik.
+    $wynikiUzytkownika = wyniki_uzytkownika($pdo, (int) $user['id']);
+    if (isset($wynikiUzytkownika[$testId])) {
+        flash('info', 'Ten test możesz rozwiązać tylko raz. Pokazuję zapisany wynik.');
+        redirect(app_url('admin/testy.php?akcja=wynik&test_id=' . $testId));
     }
 
     $blokada = blokujaca_prezentacja(
@@ -323,6 +338,7 @@ if ($action === 'edytuj' && $testId > 0) {
     if (!$isFirma) {
         $prezentacjeWgNumeru = prezentacje_wg_numeru($pdo);
         $obejrzanePrezentacje = obejrzane_prezentacje($pdo, (int) $user['id']);
+        $wynikiUzytkownika = wyniki_uzytkownika($pdo, (int) $user['id']);
 
         foreach ($testy as $t) {
             $blokada = blokujaca_prezentacja((string) $t['tytul'], $prezentacjeWgNumeru, $obejrzanePrezentacje);

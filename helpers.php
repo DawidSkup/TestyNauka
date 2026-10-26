@@ -353,6 +353,39 @@ function rozwiazane_testy(PDO $pdo, int $userId): array
 }
 
 /**
+ * Wyniki użytkownika pogrupowane po ID testu (najnowsza próba).
+ * Test można rozwiązać tylko raz, więc w praktyce jest to jedyny wynik.
+ *
+ * @return array<int, array{id:int, wynik:int, maks:int, procent:int}>
+ */
+function wyniki_uzytkownika(PDO $pdo, int $userId): array
+{
+    $stmt = $pdo->prepare(
+        'SELECT id, test_id, wynik, maks, procent
+           FROM wyniki_testow
+          WHERE user_id = :user_id
+          ORDER BY id DESC'
+    );
+    $stmt->execute([':user_id' => $userId]);
+
+    $mapa = [];
+    foreach ($stmt->fetchAll() as $wynik) {
+        $testId = (int) $wynik['test_id'];
+
+        if (!isset($mapa[$testId])) {
+            $mapa[$testId] = [
+                'id'      => (int) $wynik['id'],
+                'wynik'   => (int) $wynik['wynik'],
+                'maks'    => (int) $wynik['maks'],
+                'procent' => (int) round((float) $wynik['procent']),
+            ];
+        }
+    }
+
+    return $mapa;
+}
+
+/**
  * Test, który trzeba rozwiązać, aby odblokować prezentację o numerze N
  * (test o numerze N-1), albo null, gdy prezentacja jest odblokowana.
  *
