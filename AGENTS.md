@@ -90,8 +90,9 @@ formą materiału jest **slajd** składający się z:
 Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na klawiaturze).
 Materiały tworzą **łańcuch odblokowywania**: prezentacja 1 jest dostępna od razu,
 prezentacja N (N > 1) odblokowuje się po rozwiązaniu testu N-1, a obejrzenie prezentacji N
-odblokowuje test N. Obejrzenie prezentacji przez użytkownika grupy `materialy` jest
-zapisywane w bazie; rozwiązanie testu wynika z zapisanego wyniku w `wyniki_testow`.
+odblokowuje test N. Otwarcie prezentacji przez użytkownika grupy `materialy` (także
+prezentacji bez slajdów) jest zapisywane w bazie; rozwiązanie testu wynika z zapisanego
+wyniku w `wyniki_testow`.
 Zarządzanie materiałami (`admin/materialy.php`, `admin/slajd_form.php`) należy do grupy `firma`.
 
 ## 3a. Testy wiedzy
@@ -135,11 +136,13 @@ widzieć wynik.
   + powrót do listy), a wynik nie zostaje zapisany. Widok `podglad.php` bez `id`
   (wszystkie slajdy) jest dostępny tylko dla grupy `firma` – użytkownik odtwarza
   prezentacje z listy,
-- obejrzenie prezentacji (otwarcie jej podglądu, gdy ma co najmniej jeden opublikowany
-  slajd) zapisuje się w tabeli `prezentacje_obejrzane`; rozwiązanie testu wynika z wiersza
+- obejrzenie prezentacji (otwarcie jej podglądu, także gdy nie ma jeszcze slajdów)
+  zapisuje się w tabeli `prezentacje_obejrzane`; rozwiązanie testu wynika z wiersza
   w `wyniki_testow`. Oba stany są trwałe,
-- brak pasującej, rozwiązywalnej pozycji (np. prezentacja bez opublikowanych slajdów,
-  test w szkicu lub bez pytań) **nie blokuje** – inaczej powstałby deadlock.
+- brak pasującej pozycji (brak prezentacji o danym numerze, test w szkicu lub bez pytań)
+  **nie blokuje** – inaczej powstałby deadlock. Prezentacja bez slajdów **blokuje** test
+  (materiał istnieje, tylko nie jest jeszcze uzupełniony), ale jej otwarcie liczy się jako
+  obejrzenie, więc blokada nigdy nie jest trwała.
 - jedno pytanie z jedną poprawną odpowiedzią = jedna wybrana odpowiedź; przy kilku poprawnych
   odpowiedziach użytkownik zaznacza wszystkie pasujące (pola wyboru). Formularz pokazuje numer
   pytania i licznik „x z y”, a pasek postępu aktualizuje się na żywo,

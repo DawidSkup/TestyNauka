@@ -234,18 +234,17 @@ function numer_z_tytulu(?string $tytul): int
 }
 
 /**
- * Opublikowane prezentacje z co najmniej jednym opublikowanym slajdem,
- * pogrupowane po numerze z tytułu („Prezentacja 2” → 2).
+ * Opublikowane prezentacje pogrupowane po numerze z tytułu („Prezentacja 2” → 2).
+ *
+ * Prezentacja bez slajdów też blokuje test – inaczej test byłby dostępny przed
+ * obejrzeniem materiału. Obejrzenie (otwarcie) takiej prezentacji również się
+ * zapisuje, więc blokada nie tworzy deadlocka.
  *
  * @return array<int, array{id:int, tytul:string}>
  */
 function prezentacje_wg_numeru(PDO $pdo): array
 {
-    $sql = "SELECT p.id, p.tytul,
-                   (SELECT COUNT(*)
-                      FROM prezentacje_slajdy ps
-                      JOIN slajdy s ON s.id = ps.slajd_id
-                     WHERE ps.prezentacja_id = p.id AND s.status = 'opublikowany') AS liczba_slajdow
+    $sql = "SELECT p.id, p.tytul
               FROM prezentacje p
              WHERE p.status = 'opublikowany'
              ORDER BY p.id ASC";
@@ -254,7 +253,7 @@ function prezentacje_wg_numeru(PDO $pdo): array
     foreach ($pdo->query($sql)->fetchAll() as $prezentacja) {
         $numer = numer_z_tytulu((string) $prezentacja['tytul']);
 
-        if ($numer > 0 && (int) $prezentacja['liczba_slajdow'] > 0 && !isset($mapa[$numer])) {
+        if ($numer > 0 && !isset($mapa[$numer])) {
             $mapa[$numer] = ['id' => (int) $prezentacja['id'], 'tytul' => (string) $prezentacja['tytul']];
         }
     }

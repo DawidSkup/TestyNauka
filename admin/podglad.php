@@ -76,7 +76,8 @@ if ($prezentacjaId > 0) {
     $slajdy = $stmt->fetchAll();
 
     // Obejrzenie prezentacji odblokowuje test o tym samym numerze.
-    if (!$isFirma && $user !== null && $slajdy !== []) {
+    // Pusta prezentacja też się liczy – inaczej testu nie dałoby się nigdy odblokować.
+    if (!$isFirma && $user !== null) {
         oznacz_prezentacje_obejrzana($pdo, (int) $user['id'], $prezentacjaId);
     }
 } else {
