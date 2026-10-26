@@ -131,6 +131,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([':id' => $id]);
         $cel = $stmt->fetch();
 
+        // Administrator nie moze blokowac innego administratora
+        if ($cel && $user['grupa'] === GROUP_FIRMA && $cel['grupa'] === GROUP_FIRMA && $user['id'] !== $cel['id']) {
+            flash('warning', 'Nie mozna zmieniac statusu innego administratora.');
+            redirect(app_url('admin/uzytkownicy.php'));
+        }
+
         if ($cel) {
             if ($cel['aktywny']) {
                 $pdo->prepare('UPDATE users SET aktywny = 0, updated_at = :n WHERE id = :id')
@@ -152,6 +158,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($akcja === 'grupa') {
         $id    = (int) ($_POST['user_id'] ?? 0);
         $grupa = (string) ($_POST['grupa'] ?? '');
+
+        // Administrator nie moze zmieniac grupy innego administratora
+        if ($id > 0 && $user['grupa'] === GROUP_FIRMA) {
+            $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+            $cel = $stmt->fetch();
+            if ($cel && $cel['grupa'] === GROUP_FIRMA && $user['id'] !== $cel['id']) {
+                flash('warning', 'Nie mozna zmieniac grupy innego administratora.');
+                redirect(app_url('admin/uzytkownicy.php'));
+            }
+        }
 
         if (isset(GROUPS[$grupa])) {
             $pdo->prepare('UPDATE users SET grupa = :g, updated_at = :n WHERE id = :id')

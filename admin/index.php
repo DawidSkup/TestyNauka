@@ -158,6 +158,20 @@ layout_header('Panel startowy', 'index.php');
         <span class="stat-value"><?= e(count(wyniki_uzytkownika($pdo, (int) $user['id']))) ?></span>
         <span class="stat-hint">rozwiązanych testów</span>
     </div>
+
+    <?php if (in_group(GROUP_FIRMA)): ?>
+    <div class="card stat">
+        <span class="stat-label">Wyniki testów</span>
+        <span class="stat-value"><?= e(count(wyniki_uzytkownika($pdo, (int) $user['id']))) ?></span>
+        <span class="stat-hint">rozwiązanych testów</span>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">Wyniki wszystkich użytkowników</h2>
+        <p class="muted small">Tylko dla grupy firmy</p>
+        <a class="btn btn-primary" href="<?= e(app_url('admin/uzytkownicy.php')) ?>">Zarządzaj użytkownikami</a>
+    </div>
+    <?php endif; ?>
 </section>
 
 <section class="grid grid-2">
