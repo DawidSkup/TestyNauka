@@ -546,6 +546,9 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
                             🔒 Najpierw rozwiąż <strong><?= e($blokadaP['tytul']) ?></strong>,
                             aby odblokować tę prezentację.
                         </p>
+                        <?php if ((int) $blokadaP['liczba_pytan'] === 0): ?>
+                            <p class="muted small">Ten test nie ma jeszcze pytań, więc nie można go rozwiązać.</p>
+                        <?php endif; ?>
                         <div class="test-card-meta">
                             <a class="btn btn-primary btn-sm" href="<?= e(app_url('admin/testy.php?akcja=rozwiaz&test_id=' . (int) $blokadaP['id'])) ?>">
                                 Rozwiąż <?= e($blokadaP['tytul']) ?> →

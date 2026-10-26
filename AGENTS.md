@@ -139,10 +139,11 @@ widzieć wynik.
 - obejrzenie prezentacji (otwarcie jej podglądu, także gdy nie ma jeszcze slajdów)
   zapisuje się w tabeli `prezentacje_obejrzane`; rozwiązanie testu wynika z wiersza
   w `wyniki_testow`. Oba stany są trwałe,
-- brak pasującej pozycji (brak prezentacji o danym numerze, test w szkicu lub bez pytań)
-  **nie blokuje** – inaczej powstałby deadlock. Prezentacja bez slajdów **blokuje** test
-  (materiał istnieje, tylko nie jest jeszcze uzupełniony), ale jej otwarcie liczy się jako
-  obejrzenie, więc blokada nigdy nie jest trwała.
+- brak pasującej pozycji (brak prezentacji o danym numerze, test w szkicu) **nie blokuje**
+  – inaczej powstałby deadlock. Prezentacja bez slajdów **blokuje** test (materiał
+  istnieje, tylko nie jest jeszcze uzupełniony), ale jej otwarcie liczy się jako
+  obejrzenie, więc blokada nigdy nie jest trwała. Test bez pytań również **blokuje**
+  kolejną prezentację – administrator musi dodać pytania, aby użytkownik mógł przejść dalej.
 - jedno pytanie z jedną poprawną odpowiedzią = jedna wybrana odpowiedź; przy kilku poprawnych
   odpowiedziach użytkownik zaznacza wszystkie pasujące (pola wyboru). Formularz pokazuje numer
   pytania i licznik „x z y”, a pasek postępu aktualizuje się na żywo,
@@ -332,8 +333,9 @@ TestyNauka/
       opublikowanej prezentacji o numerze N; blokada działa też przy bezpośrednim wejściu
       w adres `?akcja=rozwiaz` (wynik nie zostaje zapisany).
 - [x] Prezentacja o numerze N (N > 1) jest zablokowana do chwili rozwiązania testu
-      o numerze N-1; prezentacja 1 jest dostępna od razu. Blokada działa też przy
-      bezpośrednim wejściu w `admin/podglad.php?id=…`.
+      o numerze N-1; prezentacja 1 jest dostępna od razu. Dotyczy to także testu, który
+      nie ma jeszcze pytań. Blokada działa też przy bezpośrednim wejściu w
+      `admin/podglad.php?id=…`.
 - [x] Ekran wyniku pokazuje liczbę punktów, procent, pasek postępu i komunikat dopasowany
       do wyniku; użytkownik może rozwiązać test ponownie.
 - [x] Operacje zarządzania testami wymagają zalogowania i grupy `firma`; formularze bez tokenu

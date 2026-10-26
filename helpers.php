@@ -308,10 +308,12 @@ function blokujaca_prezentacja(string $tytulTestu, array $prezentacje, array $ob
 }
 
 /**
- * Opublikowane testy z co najmniej jednym pytaniem, pogrupowane po numerze
- * z tytułu („Test 2” → 2). Test bez pytań nie da się rozwiązać, więc nie blokuje.
+ * Opublikowane testy pogrupowane po numerze z tytułu („Test 2” → 2).
  *
- * @return array<int, array{id:int, tytul:string}>
+ * Blokuje także test bez pytań – aby przejść do kolejnej prezentacji, trzeba
+ * uzupełnić test pytaniami i go rozwiązać.
+ *
+ * @return array<int, array{id:int, tytul:string, liczba_pytan:int}>
  */
 function testy_wg_numeru(PDO $pdo): array
 {
@@ -325,8 +327,12 @@ function testy_wg_numeru(PDO $pdo): array
     foreach ($pdo->query($sql)->fetchAll() as $test) {
         $numer = numer_z_tytulu((string) $test['tytul']);
 
-        if ($numer > 0 && (int) $test['liczba_pytan'] > 0 && !isset($mapa[$numer])) {
-            $mapa[$numer] = ['id' => (int) $test['id'], 'tytul' => (string) $test['tytul']];
+        if ($numer > 0 && !isset($mapa[$numer])) {
+            $mapa[$numer] = [
+                'id'           => (int) $test['id'],
+                'tytul'        => (string) $test['tytul'],
+                'liczba_pytan' => (int) $test['liczba_pytan'],
+            ];
         }
     }
 
@@ -350,9 +356,9 @@ function rozwiazane_testy(PDO $pdo, int $userId): array
  * Test, który trzeba rozwiązać, aby odblokować prezentację o numerze N
  * (test o numerze N-1), albo null, gdy prezentacja jest odblokowana.
  *
- * @param array<int, array{id:int, tytul:string}> $testy      wynik testy_wg_numeru()
- * @param int[]                                   $rozwiazane wynik rozwiazane_testy()
- * @return array{id:int, tytul:string}|null
+ * @param array<int, array{id:int, tytul:string, liczba_pytan:int}> $testy      wynik testy_wg_numeru()
+ * @param int[]                                                    $rozwiazane wynik rozwiazane_testy()
+ * @return array{id:int, tytul:string, liczba_pytan:int}|null
  */
 function blokujacy_test(string $tytulPrezentacji, array $testy, array $rozwiazane): ?array
 {
