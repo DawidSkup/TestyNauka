@@ -6,10 +6,18 @@ require_once __DIR__ . '/../auth.php';
 require_login();
 
 $pdo = db();
+$user = current_user();
 $isFirma = in_group(GROUP_FIRMA);
 $prezentacjaId = (int) ($_GET['id'] ?? 0);
 $pokazSzkice = $isFirma && ($_GET['status'] ?? '') === 'wszystkie';
 $tylkoPublikowane = !$pokazSzkice;
+
+// Użytkownik odtwarza konkretną prezentację z listy – widok „wszystkie slajdy”
+// jest zarezerwowany dla grupy firmy (omijałby blokady).
+if (!$isFirma && $prezentacjaId <= 0) {
+    flash('info', 'Wybierz prezentację z listy, aby ją odtworzyć.');
+    redirect(app_url('admin/prezentacje.php'));
+}
 
 $prezentacja = null;
 $tytul = 'Wszystkie slajdy';
@@ -33,6 +41,20 @@ if ($prezentacjaId > 0) {
         redirect(app_url('admin/prezentacje.php'));
     }
 
+    // Prezentacja o numerze N jest zablokowana do rozwiązania testu N-1.
+    if (!$isFirma && $user !== null) {
+        $blokadaTestu = blokujacy_test(
+            (string) $prezentacja['tytul'],
+            testy_wg_numeru($pdo),
+            rozwiazane_testy($pdo, (int) $user['id'])
+        );
+
+        if ($blokadaTestu !== null) {
+            flash('warning', 'Zanim obejrzysz tę prezentację, rozwiąż test „' . $blokadaTestu['tytul'] . '”.');
+            redirect(app_url('admin/prezentacje.php'));
+        }
+    }
+
     $tytul = (string) $prezentacja['tytul'];
     $backUrl = $isFirma
         ? app_url('admin/prezentacje.php?akcja=edytuj&id=' . $prezentacjaId)
@@ -52,6 +74,11 @@ if ($prezentacjaId > 0) {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':id' => $prezentacjaId]);
     $slajdy = $stmt->fetchAll();
+
+    // Obejrzenie prezentacji odblokowuje test o tym samym numerze.
+    if (!$isFirma && $user !== null && $slajdy !== []) {
+        oznacz_prezentacje_obejrzana($pdo, (int) $user['id'], $prezentacjaId);
+    }
 } else {
     $sql = 'SELECT s.*, u.imie AS autor FROM slajdy s LEFT JOIN users u ON u.id = s.autor_id';
     if ($tylkoPublikowane) {

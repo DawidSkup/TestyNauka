@@ -54,6 +54,10 @@ i kodami) oraz **grupę materiałów** (dodawanie i edycja slajdów).
 - **Testy wiedzy** – pytania z jedną lub kilkoma poprawnymi odpowiedziami. Administrator
   oznacza poprawne odpowiedzi w edycji testu, a użytkownik przy pytaniu wielokrotnego
   wyboru zaznacza wszystkie pasujące odpowiedzi. Wynik zapisuje się od razu po zakończeniu.
+- **Odblokowywanie krok po kroku** – prezentacja 1 jest dostępna od razu. Prezentacja N,
+  a potem test N odblokowują się naprzemiennie: rozwiązanie testu N-1 odblokowuje
+  prezentację N, a obejrzenie prezentacji N odblokowuje test N. Zablokowane karty pokazują
+  odpowiedni komunikat i przycisk prowadzący do poprzedniego kroku.
 
 ## Jak dodać nowego użytkownika
 

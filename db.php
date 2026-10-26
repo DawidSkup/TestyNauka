@@ -147,6 +147,21 @@ function db_migrate(PDO $pdo): void
 
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_prezentacje_slajdy ON prezentacje_slajdy(prezentacja_id, kolejnosc)');
 
+    // Obejrzenie prezentacji przez użytkownika – odblokowuje test o tym samym numerze.
+    $pdo->exec(<<<'SQL'
+        CREATE TABLE IF NOT EXISTS prezentacje_obejrzane (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id        INTEGER NOT NULL,
+            prezentacja_id INTEGER NOT NULL,
+            created_at     TEXT    NOT NULL,
+            UNIQUE (user_id, prezentacja_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (prezentacja_id) REFERENCES prezentacje(id) ON DELETE CASCADE
+        )
+    SQL);
+
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_prezentacje_obejrzane ON prezentacje_obejrzane(user_id)');
+
     $pdo->exec(<<<'SQL'
         CREATE TABLE IF NOT EXISTS testy (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -537,6 +537,15 @@ select { cursor: pointer; }
 .test-card h3 { font-size: 1rem; margin-bottom: 2px; }
 .test-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .test-card-meta { margin-top: auto; padding-top: 14px; display: flex; gap: 8px; }
+.lock-note {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm, 10px);
+    background: var(--danger-soft);
+    color: var(--danger);
+    font-size: .88rem;
+    line-height: 1.45;
+}
 
 .question-list { display: flex; flex-direction: column; gap: 14px; }
 

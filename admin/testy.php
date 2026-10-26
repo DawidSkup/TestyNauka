@@ -147,6 +147,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'rozwiaz') {
+        // Test odblokowuje obejrzenie prezentacji o tym samym numerze.
+        if (!$isFirma) {
+            $stmt = $pdo->prepare('SELECT * FROM testy WHERE id = :id AND status = "opublikowany"');
+            $stmt->execute([':id' => $testId]);
+            $testDoSprawdzenia = $stmt->fetch();
+
+            if (!$testDoSprawdzenia) {
+                flash('error', 'Test nie jest dostępny.');
+                redirect(app_url('admin/testy.php'));
+            }
+
+            $blokada = blokujaca_prezentacja(
+                (string) $testDoSprawdzenia['tytul'],
+                prezentacje_wg_numeru($pdo),
+                obejrzane_prezentacje($pdo, (int) $user['id'])
+            );
+
+            if ($blokada !== null) {
+                flash('warning', 'Zanim rozwiążesz ten test, obejrzyj prezentację „' . $blokada['tytul'] . '”.');
+                redirect(app_url('admin/testy.php'));
+            }
+        }
+
         $odpowiedzi = $_POST['odpowiedz'] ?? [];
         if (!is_array($odpowiedzi)) {
             $odpowiedzi = [];
@@ -204,6 +227,7 @@ $pytania = [];
 $odpowiedziWgPytania = [];
 $wynik = null;
 $testy = [];
+$blokady = [];
 
 /** Pobiera odpowiedzi dla listy pytań i grupuje je po pytaniu. */
 function testy_odpowiedzi(PDO $pdo, array $pytania): array
@@ -252,6 +276,17 @@ if ($action === 'edytuj' && $testId > 0) {
         redirect(app_url('admin/testy.php'));
     }
 
+    $blokada = blokujaca_prezentacja(
+        (string) $test['tytul'],
+        prezentacje_wg_numeru($pdo),
+        obejrzane_prezentacje($pdo, (int) $user['id'])
+    );
+
+    if ($blokada !== null) {
+        flash('warning', 'Zanim rozwiążesz ten test, obejrzyj prezentację „' . $blokada['tytul'] . '”.');
+        redirect(app_url('admin/testy.php'));
+    }
+
     $stmt = $pdo->prepare('SELECT * FROM pytania WHERE test_id = :test_id ORDER BY kolejnosc ASC, id ASC');
     $stmt->execute([':test_id' => $testId]);
     $pytania = $stmt->fetchAll();
@@ -281,9 +316,22 @@ if ($action === 'edytuj' && $testId > 0) {
     if (!$isFirma) {
         $sql .= " WHERE t.status = 'opublikowany'";
     }
-    $sql .= ' ORDER BY t.id DESC';
+    $sql .= ' ORDER BY t.id ASC';
     $testy = $pdo->query($sql)->fetchAll();
     $view = 'lista';
+
+    if (!$isFirma) {
+        $prezentacjeWgNumeru = prezentacje_wg_numeru($pdo);
+        $obejrzanePrezentacje = obejrzane_prezentacje($pdo, (int) $user['id']);
+
+        foreach ($testy as $t) {
+            $blokada = blokujaca_prezentacja((string) $t['tytul'], $prezentacjeWgNumeru, $obejrzanePrezentacje);
+
+            if ($blokada !== null) {
+                $blokady[(int) $t['id']] = $blokada;
+            }
+        }
+    }
 }
 
 $statOpublikowane = 0;
@@ -783,6 +831,7 @@ layout_header('Testy', 'testy.php');
         <div class="page-toolbar">
             <p class="muted">
                 Wybierz test i sprawdź swoją wiedzę. Widoczne są tylko testy opublikowane przez administratora.
+                Test N odblokujesz po obejrzeniu prezentacji N, a prezentacja N – po rozwiązaniu testu N-1.
             </p>
             <div class="page-toolbar-actions">
                 <span class="badge"><?= count($testy) ?> <?= count($testy) === 1 ? 'test' : 'testów' ?></span>
@@ -797,9 +846,13 @@ layout_header('Testy', 'testy.php');
         <?php else: ?>
             <section class="grid grid-slides">
                 <?php foreach ($testy as $t): ?>
+                    <?php $blokada = $blokady[(int) $t['id']] ?? null; ?>
                     <article class="card test-card">
                         <div class="test-card-top">
                             <span class="badge badge-firma">Test</span>
+                            <?php if ($blokada !== null): ?>
+                                <span class="badge badge-off">zablokowany</span>
+                            <?php endif; ?>
                             <span class="muted small"><?= (int) $t['liczba_pytan'] ?> <?= (int) $t['liczba_pytan'] === 1 ? 'pytanie' : 'pytań' ?></span>
                         </div>
                         <h3><?= e($t['tytul']) ?></h3>
@@ -808,11 +861,23 @@ layout_header('Testy', 'testy.php');
                         <?php else: ?>
                             <p class="muted small">Bez opisu</p>
                         <?php endif; ?>
-                        <div class="test-card-meta">
-                            <a class="btn btn-primary btn-sm" href="<?= e(app_url('admin/testy.php?akcja=rozwiaz&test_id=' . (int) $t['id'])) ?>">
-                                Rozwiąż test →
-                            </a>
-                        </div>
+                        <?php if ($blokada !== null): ?>
+                            <p class="lock-note">
+                                🔒 Najpierw obejrzyj prezentację <strong><?= e($blokada['tytul']) ?></strong>,
+                                aby odblokować ten test.
+                            </p>
+                            <div class="test-card-meta">
+                                <a class="btn btn-primary btn-sm" href="<?= e(app_url('admin/podglad.php?id=' . (int) $blokada['id'])) ?>">
+                                    ▶ Odtwórz <?= e($blokada['tytul']) ?>
+                                </a>
+                            </div>
+                        <?php else: ?>
+                            <div class="test-card-meta">
+                                <a class="btn btn-primary btn-sm" href="<?= e(app_url('admin/testy.php?akcja=rozwiaz&test_id=' . (int) $t['id'])) ?>">
+                                    Rozwiąż test →
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </article>
                 <?php endforeach; ?>
             </section>

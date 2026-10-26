@@ -210,6 +210,7 @@ $view = 'lista';
 $prezentacja = null;
 $slajdyPrezentacji = [];
 $prezentacje = [];
+$blokadyPrezentacji = [];
 
 if ($akcja === 'edytuj' && $prezentacjaId > 0) {
     require_group(GROUP_FIRMA);
@@ -243,8 +244,22 @@ if ($akcja === 'edytuj' && $prezentacjaId > 0) {
     if (!$isFirma) {
         $sql .= " WHERE p.status = 'opublikowany'";
     }
-    $sql .= ' ORDER BY p.id DESC';
+    $sql .= ' ORDER BY p.id ASC';
     $prezentacje = $pdo->query($sql)->fetchAll();
+    $obejrzanePrezentacje = $isFirma ? [] : obejrzane_prezentacje($pdo, (int) $user['id']);
+
+    if (!$isFirma) {
+        $testyWgNumeru = testy_wg_numeru($pdo);
+        $rozwiazaneTesty = rozwiazane_testy($pdo, (int) $user['id']);
+
+        foreach ($prezentacje as $p) {
+            $blokadaTestu = blokujacy_test((string) $p['tytul'], $testyWgNumeru, $rozwiazaneTesty);
+
+            if ($blokadaTestu !== null) {
+                $blokadyPrezentacji[(int) $p['id']] = $blokadaTestu;
+            }
+        }
+    }
 
     $view = 'lista';
 }
@@ -424,6 +439,8 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
         <div>
             <p class="muted">
                 Prezentacje grupują slajdy w gotowe pokazy. Odtworzysz je w trybie pełnoekranowym.
+                Prezentacja 1 jest dostępna od razu, każda kolejna (N) odblokowuje się po rozwiązaniu
+                testu o numerze N-1, a obejrzenie prezentacji N odblokowuje test N.
             </p>
         </div>
         <div class="page-toolbar-actions">
@@ -497,12 +514,22 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
     <?php else: ?>
         <section class="grid grid-slides">
             <?php foreach ($prezentacje as $p): ?>
+                <?php $blokadaP = $blokadyPrezentacji[(int) $p['id']] ?? null; ?>
                 <article class="card test-card">
                     <div class="test-card-top">
                         <span class="badge badge-firma">Prezentacja</span>
                         <span class="badge <?= $p['status'] === 'opublikowany' ? 'badge-ok' : 'badge-warn' ?>">
                             <?= $p['status'] === 'opublikowany' ? 'opublikowana' : 'szkic' ?>
                         </span>
+                        <?php if (!$isFirma): ?>
+                            <?php if ($blokadaP !== null): ?>
+                                <span class="badge badge-off">zablokowana</span>
+                            <?php elseif (in_array((int) $p['id'], $obejrzanePrezentacje, true)): ?>
+                                <span class="badge badge-ok">✓ obejrzana</span>
+                            <?php else: ?>
+                                <span class="badge badge-off">nieobejrzana</span>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </div>
                     <h3><?= e($p['tytul']) ?></h3>
                     <?php if (trim((string) $p['opis']) !== ''): ?>
@@ -514,20 +541,32 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
                         <span class="badge"><?= (int) $p['liczba_slajdow'] ?> <?= (int) $p['liczba_slajdow'] === 1 ? 'slajd' : 'slajdów' ?></span>
                         <span class="muted small"><?= e($p['autor'] ?? '—') ?></span>
                     </div>
-                    <div class="test-card-meta">
-                        <a class="btn btn-primary btn-sm" href="<?= e(app_url('admin/podglad.php?id=' . (int) $p['id'] . ($isFirma ? '&status=wszystkie' : ''))) ?>">
-                            ▶ Odtwórz
-                        </a>
-                        <?php if ($isFirma): ?>
-                            <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/prezentacje.php?akcja=edytuj&id=' . (int) $p['id'])) ?>">Edytuj</a>
-                            <form method="post" action="<?= e(app_url('admin/prezentacje.php')) ?>" class="form-inline" data-confirm="Usunąć prezentację? Slajdy pozostaną w materiałach.">
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="akcja" value="usun">
-                                <input type="hidden" name="prezentacja_id" value="<?= (int) $p['id'] ?>">
-                                <button class="btn btn-ghost btn-sm text-danger" type="submit">Usuń</button>
-                            </form>
-                        <?php endif; ?>
-                    </div>
+                    <?php if ($blokadaP !== null): ?>
+                        <p class="lock-note">
+                            🔒 Najpierw rozwiąż <strong><?= e($blokadaP['tytul']) ?></strong>,
+                            aby odblokować tę prezentację.
+                        </p>
+                        <div class="test-card-meta">
+                            <a class="btn btn-primary btn-sm" href="<?= e(app_url('admin/testy.php?akcja=rozwiaz&test_id=' . (int) $blokadaP['id'])) ?>">
+                                Rozwiąż <?= e($blokadaP['tytul']) ?> →
+                            </a>
+                        </div>
+                    <?php else: ?>
+                        <div class="test-card-meta">
+                            <a class="btn btn-primary btn-sm" href="<?= e(app_url('admin/podglad.php?id=' . (int) $p['id'] . ($isFirma ? '&status=wszystkie' : ''))) ?>">
+                                ▶ Odtwórz
+                            </a>
+                            <?php if ($isFirma): ?>
+                                <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/prezentacje.php?akcja=edytuj&id=' . (int) $p['id'])) ?>">Edytuj</a>
+                                <form method="post" action="<?= e(app_url('admin/prezentacje.php')) ?>" class="form-inline" data-confirm="Usunąć prezentację? Slajdy pozostaną w materiałach.">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="akcja" value="usun">
+                                    <input type="hidden" name="prezentacja_id" value="<?= (int) $p['id'] ?>">
+                                    <button class="btn btn-ghost btn-sm text-danger" type="submit">Usuń</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </article>
             <?php endforeach; ?>
         </section>

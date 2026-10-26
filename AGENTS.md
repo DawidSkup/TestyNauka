@@ -88,6 +88,10 @@ formą materiału jest **slajd** składający się z:
 - kolejności na liście materiałów (zmiana kolejności + przełącznik publikacji).
 
 Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na klawiaturze).
+Materiały tworzą **łańcuch odblokowywania**: prezentacja 1 jest dostępna od razu,
+prezentacja N (N > 1) odblokowuje się po rozwiązaniu testu N-1, a obejrzenie prezentacji N
+odblokowuje test N. Obejrzenie prezentacji przez użytkownika grupy `materialy` jest
+zapisywane w bazie; rozwiązanie testu wynika z zapisanego wyniku w `wyniki_testow`.
 Zarządzanie materiałami (`admin/materialy.php`, `admin/slajd_form.php`) należy do grupy `firma`.
 
 ## 3a. Testy wiedzy
@@ -122,6 +126,20 @@ widzieć wynik.
 **Rozwiązywanie (grupa `materialy`):**
 
 - widoczne są wyłącznie testy o statusie `opublikowany`,
+- **łańcuch odblokowywania** dla grupy `materialy`: prezentacja 1 jest dostępna od razu,
+  **prezentacja N (N > 1) jest zablokowana do rozwiązania testu N-1**, a **test N jest
+  zablokowany do obejrzenia prezentacji N**,
+- zablokowana karta prezentacji pokazuje komunikat i przycisk „Rozwiąż Test N-1”,
+  zablokowana karta testu – komunikat i przycisk „Odtwórz Prezentację N”. Bezpośrednie
+  wejście na `admin/podglad.php?id=…` lub `?akcja=rozwiaz` jest odrzucane (komunikat
+  + powrót do listy), a wynik nie zostaje zapisany. Widok `podglad.php` bez `id`
+  (wszystkie slajdy) jest dostępny tylko dla grupy `firma` – użytkownik odtwarza
+  prezentacje z listy,
+- obejrzenie prezentacji (otwarcie jej podglądu, gdy ma co najmniej jeden opublikowany
+  slajd) zapisuje się w tabeli `prezentacje_obejrzane`; rozwiązanie testu wynika z wiersza
+  w `wyniki_testow`. Oba stany są trwałe,
+- brak pasującej, rozwiązywalnej pozycji (np. prezentacja bez opublikowanych slajdów,
+  test w szkicu lub bez pytań) **nie blokuje** – inaczej powstałby deadlock.
 - jedno pytanie z jedną poprawną odpowiedzią = jedna wybrana odpowiedź; przy kilku poprawnych
   odpowiedziach użytkownik zaznacza wszystkie pasujące (pola wyboru). Formularz pokazuje numer
   pytania i licznik „x z y”, a pasek postępu aktualizuje się na żywo,
@@ -184,6 +202,7 @@ widzieć wynik.
 | `pytania` | `id`, `test_id` → `testy`, `tresc`, `kolejnosc`                                              |
 | `odpowiedzi` | `id`, `pytanie_id` → `pytania`, `tresc`, `poprawna`, `kolejnosc`                        |
 | `wyniki_testow` | `id`, `user_id` → `users`, `test_id` → `testy`, `wynik`, `maks`, `procent`, `created_at` |
+| `prezentacje_obejrzane` | `id`, `user_id` → `users`, `prezentacja_id` → `prezentacje`, `created_at` (UNIQUE: użytkownik + prezentacja) |
 | `log`   | `id`, `user_id`, `akcja`, `szczegoly`, `created_at`                                            |
 
 - Hasła: `password_hash()` / `password_verify()` (`PASSWORD_DEFAULT`).
@@ -191,7 +210,9 @@ widzieć wynik.
   `zaproszenia.utworzony_przez` → `users` (`SET NULL`), `pytania.test_id` → `testy`
   (`ON DELETE CASCADE`), `odpowiedzi.pytanie_id` → `pytania` (`ON DELETE CASCADE`),
   `wyniki_testow.user_id` → `users` i `wyniki_testow.test_id` → `testy` (`ON DELETE CASCADE`),
-  `testy.autor_id` → `users` (`SET NULL`).
+  `testy.autor_id` → `users` (`SET NULL`),
+  `prezentacje_obejrzane.user_id` → `users` i `prezentacje_obejrzane.prezentacja_id`
+  → `prezentacje` (`ON DELETE CASCADE`).
 
 ## 6. Struktura plików
 
@@ -304,6 +325,12 @@ TestyNauka/
 - [x] Grupa `materialy` widzi wyłącznie opublikowane testy, rozwiązuje je (przy jednej poprawnej
       odpowiedzi – jedna odpowiedź, przy kilku – wszystkie poprawne) i otrzymuje wynik zapisany
       w `wyniki_testow`.
+- [x] Test o numerze N jest zablokowany dla grupy `materialy` do chwili obejrzenia
+      opublikowanej prezentacji o numerze N; blokada działa też przy bezpośrednim wejściu
+      w adres `?akcja=rozwiaz` (wynik nie zostaje zapisany).
+- [x] Prezentacja o numerze N (N > 1) jest zablokowana do chwili rozwiązania testu
+      o numerze N-1; prezentacja 1 jest dostępna od razu. Blokada działa też przy
+      bezpośrednim wejściu w `admin/podglad.php?id=…`.
 - [x] Ekran wyniku pokazuje liczbę punktów, procent, pasek postępu i komunikat dopasowany
       do wyniku; użytkownik może rozwiązać test ponownie.
 - [x] Operacje zarządzania testami wymagają zalogowania i grupy `firma`; formularze bez tokenu

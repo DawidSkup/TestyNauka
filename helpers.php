@@ -220,6 +220,160 @@ function code_is_permanent(?string $wygasaAt): bool
 }
 
 /* ------------------------------------------------------------------ */
+/* Prezentacje i testy – odblokowywanie testów                         */
+/* ------------------------------------------------------------------ */
+
+/** Numer porządkowy z automatycznego tytułu („Test 3” → 3, „Prezentacja 3” → 3). */
+function numer_z_tytulu(?string $tytul): int
+{
+    if (!is_string($tytul) || preg_match('/(\d+)\s*$/u', $tytul, $m) !== 1) {
+        return 0;
+    }
+
+    return (int) $m[1];
+}
+
+/**
+ * Opublikowane prezentacje z co najmniej jednym opublikowanym slajdem,
+ * pogrupowane po numerze z tytułu („Prezentacja 2” → 2).
+ *
+ * @return array<int, array{id:int, tytul:string}>
+ */
+function prezentacje_wg_numeru(PDO $pdo): array
+{
+    $sql = "SELECT p.id, p.tytul,
+                   (SELECT COUNT(*)
+                      FROM prezentacje_slajdy ps
+                      JOIN slajdy s ON s.id = ps.slajd_id
+                     WHERE ps.prezentacja_id = p.id AND s.status = 'opublikowany') AS liczba_slajdow
+              FROM prezentacje p
+             WHERE p.status = 'opublikowany'
+             ORDER BY p.id ASC";
+
+    $mapa = [];
+    foreach ($pdo->query($sql)->fetchAll() as $prezentacja) {
+        $numer = numer_z_tytulu((string) $prezentacja['tytul']);
+
+        if ($numer > 0 && (int) $prezentacja['liczba_slajdow'] > 0 && !isset($mapa[$numer])) {
+            $mapa[$numer] = ['id' => (int) $prezentacja['id'], 'tytul' => (string) $prezentacja['tytul']];
+        }
+    }
+
+    return $mapa;
+}
+
+/**
+ * ID prezentacji obejrzanych przez użytkownika.
+ *
+ * @return int[]
+ */
+function obejrzane_prezentacje(PDO $pdo, int $userId): array
+{
+    $stmt = $pdo->prepare('SELECT prezentacja_id FROM prezentacje_obejrzane WHERE user_id = :user_id');
+    $stmt->execute([':user_id' => $userId]);
+
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/** Zapisuje obejrzenie prezentacji (powtórne wywołanie nic nie zmienia). */
+function oznacz_prezentacje_obejrzana(PDO $pdo, int $userId, int $prezentacjaId): void
+{
+    $stmt = $pdo->prepare(
+        'INSERT OR IGNORE INTO prezentacje_obejrzane (user_id, prezentacja_id, created_at)
+         VALUES (:user_id, :prezentacja_id, :now)'
+    );
+    $stmt->execute([
+        ':user_id'        => $userId,
+        ':prezentacja_id' => $prezentacjaId,
+        ':now'            => date('Y-m-d H:i:s'),
+    ]);
+}
+
+/**
+ * Prezentacja, którą trzeba obejrzeć przed testem o tym samym numerze,
+ * albo null, gdy test jest odblokowany (brak pasującej prezentacji = brak blokady).
+ *
+ * @param array<int, array{id:int, tytul:string}> $prezentacje wynik prezentacje_wg_numeru()
+ * @param int[]                                   $obejrzane   wynik obejrzane_prezentacje()
+ * @return array{id:int, tytul:string}|null
+ */
+function blokujaca_prezentacja(string $tytulTestu, array $prezentacje, array $obejrzane): ?array
+{
+    $numer = numer_z_tytulu($tytulTestu);
+
+    if ($numer <= 0 || !isset($prezentacje[$numer])) {
+        return null;
+    }
+
+    return in_array($prezentacje[$numer]['id'], $obejrzane, true) ? null : $prezentacje[$numer];
+}
+
+/**
+ * Opublikowane testy z co najmniej jednym pytaniem, pogrupowane po numerze
+ * z tytułu („Test 2” → 2). Test bez pytań nie da się rozwiązać, więc nie blokuje.
+ *
+ * @return array<int, array{id:int, tytul:string}>
+ */
+function testy_wg_numeru(PDO $pdo): array
+{
+    $sql = "SELECT t.id, t.tytul,
+                   (SELECT COUNT(*) FROM pytania p WHERE p.test_id = t.id) AS liczba_pytan
+              FROM testy t
+             WHERE t.status = 'opublikowany'
+             ORDER BY t.id ASC";
+
+    $mapa = [];
+    foreach ($pdo->query($sql)->fetchAll() as $test) {
+        $numer = numer_z_tytulu((string) $test['tytul']);
+
+        if ($numer > 0 && (int) $test['liczba_pytan'] > 0 && !isset($mapa[$numer])) {
+            $mapa[$numer] = ['id' => (int) $test['id'], 'tytul' => (string) $test['tytul']];
+        }
+    }
+
+    return $mapa;
+}
+
+/**
+ * ID testów, które użytkownik rozwiązał (ma zapisany co najmniej jeden wynik).
+ *
+ * @return int[]
+ */
+function rozwiazane_testy(PDO $pdo, int $userId): array
+{
+    $stmt = $pdo->prepare('SELECT DISTINCT test_id FROM wyniki_testow WHERE user_id = :user_id');
+    $stmt->execute([':user_id' => $userId]);
+
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/**
+ * Test, który trzeba rozwiązać, aby odblokować prezentację o numerze N
+ * (test o numerze N-1), albo null, gdy prezentacja jest odblokowana.
+ *
+ * @param array<int, array{id:int, tytul:string}> $testy      wynik testy_wg_numeru()
+ * @param int[]                                   $rozwiazane wynik rozwiazane_testy()
+ * @return array{id:int, tytul:string}|null
+ */
+function blokujacy_test(string $tytulPrezentacji, array $testy, array $rozwiazane): ?array
+{
+    $numer = numer_z_tytulu($tytulPrezentacji);
+
+    // Pierwsza prezentacja jest dostępna od razu.
+    if ($numer <= 1) {
+        return null;
+    }
+
+    $wymagany = $numer - 1;
+
+    if (!isset($testy[$wymagany])) {
+        return null;
+    }
+
+    return in_array($testy[$wymagany]['id'], $rozwiazane, true) ? null : $testy[$wymagany];
+}
+
+/* ------------------------------------------------------------------ */
 /* Wysyłka e-mail                                                      */
 /* ------------------------------------------------------------------ */
 
