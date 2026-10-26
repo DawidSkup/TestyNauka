@@ -487,6 +487,11 @@ layout_header('Testy', 'testy.php');
                                     <span class="badge">wielokrotny wybór</span>
                                 <?php endif; ?>
                             </div>
+                            <?php if ($isFirma): ?>
+                                <span class="question-edit-link">
+                                    <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/testy.php?akcja=edytuj&test_id=' . (int) $test['id'] . '#pytanie-' . $pytId)) ?>">Edytuj</a>
+                                </span>
+                            <?php endif; ?>
                         </div>
                         <form method="post" action="<?= e(app_url('admin/testy.php')) ?>" class="question-actions" data-confirm="Usunąć pytanie wraz z odpowiedziami?">
                             <?= csrf_field() ?>
@@ -527,6 +532,11 @@ layout_header('Testy', 'testy.php');
                                             <input type="hidden" name="odpowiedz_id" value="<?= (int) $odp['id'] ?>">
                                             <button class="btn btn-ghost btn-sm text-danger" type="submit" title="Usuń odpowiedź" aria-label="Usuń odpowiedź">✕</button>
                                         </form>
+                                        <?php if ($isFirma): ?>
+                                            <span class="answer-edit-link">
+                                                <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/testy.php?akcja=edytuj&test_id=' . (int) $test['id'] . '#odpowiedz-' . $odp['id'])) ?>">Edytuj</a>
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                 </li>
                             <?php endforeach; ?>
