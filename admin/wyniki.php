@@ -1,16 +1,11 @@
-<?php
-declare(strict_types=1);
-
 require_once __DIR__ . '/_layout.php';
 
-require_group(GROUP_FIRMA);
-
-$pdo = db();
 $user = current_user();
 
-/* Pobierz wszystkich użytkowników */
-$stmtUsers = $pdo->query("SELECT u.id, u.imie, u.email, u.grupa FROM users u WHERE u.grupa != 'firma' ORDER BY u.imie COLLATE NOCASE");
-$users = $stmtUsers->fetchAll();
+/* Pobierz wyniki bieżącego użytkownika */
+$stmtUserResults = $pdo->query("SELECT test_id, wynik, maks, procent FROM wyniki_testow WHERE user_id = :user_id");
+$stmtUserResults->execute([':user_id' => $user['id']]);
+$userResults = $stmtUserResults->fetchAll(PDO::FETCH_KEY_PAIR);
 
 /* Pobierz wszystkie opublikowane testy z numerami */
 $testy = testy_wg_numeru($pdo);
@@ -28,55 +23,31 @@ ksort($numeryTestow);
     <div class="layout">
         <main class="content">
             <div class="page-header">
-                <h1 class="page-title">Wyniki wszystkich użytkowników</h1>
-                <p class="muted small">Tylko dla grupy firmy</p>
+                <h1 class="page-title">Moje wyniki</h1>
+                <p class="muted small">Tylko Twoje wyniki</p>
             </div>
 
             <div class="table-responsive">
                 <table class="table">
                     <thead>
                     <tr>
-                        <th>Użytkownik</th>
-                        <?php foreach ($numeryTestow as $numer): ?>
-                            <th>Test <?= e($numer) ?></th>
-                        <?php endforeach; ?>
-                        <th>Razem</th>
+                        <th>Test</th>
+                        <th>Wynik</th>
+                        <th>Procent</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <?php foreach ($users as $u): ?>
+                    <?php foreach ($numeryTestow as $numer => $etykieta): ?>
                         <tr>
+                            <td>Test <?= e($numer) ?></td>
                             <td>
-                                <strong><?= e($u['imie']) ?></strong><br>
-                                <span class="muted small"><?= e($u['email']) ?></span>
-                                <span class="muted small">(<?= e($u['grupa'] ?? 'brak') ?>)</span>
+                                <?php if (isset($userResults[$testy[$numer]['id']])): ?>
+                                    <?= sprintf('%d/%d (%d%%)', $userResults[$testy[$numer]['id']]['wynik'] ?? 0, $userResults[$testy[$numer]['id']]['maks'] ?? 0, $userResults[$testy[$numer]['id']]['procent'] ?? 0); ?>
+                                <?php else: ?>
+                                    brak
+                                <?php endif; ?>
                             </td>
-                            <?php
-                            // Pobierz wyniki tego użytkownika
-                            $wyniki = wyniki_uzytkownika($pdo, (int) $u['id']);
-                            $rozwiazane = 0;
-                            ?>
-                            <?php foreach ($numeryTestow as $numer => $etykieta): ?>
-                                <?php
-                                $testId = null;
-                                foreach ($testy as $tN => $tData) {
-                                    if ($tN == $numer) {
-                                        $testId = $tData['id'];
-                                        break;
-                                    }
-                                }
-                                if ($testId !== null && isset($wyniki[$testId])) {
-                                    $wynik = $wyniki[$testId];
-                                    $rozwiazane++;
-                                    $procent = $wynik['procent'] ?? 0;
-                                    $tresc = sprintf('%d/%d (%d%%)', $wynik['wynik'] ?? 0, $wynik['maks'] ?? 0, $procent);
-                                } else {
-                                    $tresc = 'brak';
-                                }
-                                ?>
-                                <td><?= e($tresc) ?></td>
-                            <?php endforeach; ?>
-                            <td><?= e($rozwiazane) ?></td>
+                            <td><?php echo $userResults[$testy[$numer]['id']]['procent'] ?? 0; ?>%</td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
