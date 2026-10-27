@@ -1,16 +1,23 @@
 <?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/_layout.php';
 
 require_login();
 
-$pdo = db();
-
+$pdo  = db();
 $user = current_user();
 
 /* Pobierz wyniki bieżącego użytkownika */
-$stmtUserResults = $pdo->query("SELECT test_id, wynik, maks, procent FROM wyniki_testow WHERE user_id = :user_id");
-$stmtUserResults->execute([':user_id' => $user['id']]);
-$userResults = $stmtUserResults->fetchAll(PDO::FETCH_KEY_PAIR);
+$stmtUserResults = $pdo->prepare('SELECT test_id, wynik, maks, procent FROM wyniki_testow WHERE user_id = :user_id');
+$stmtUserResults->execute([':user_id' => (int) $user['id']]);
+
+$userResults = [];
+foreach ($stmtUserResults->fetchAll() as $row) {
+    $userResults[(int) $row['test_id']] = $row;
+}
 
 /* Pobierz wszystkie opublikowane testy z numerami */
 $testy = testy_wg_numeru($pdo);
@@ -18,11 +25,12 @@ $testy = testy_wg_numeru($pdo);
 /* Zbierz numerację testów */
 $numeryTestow = [];
 foreach ($testy as $numer => $data) {
-    $numeryTestow[$numer] = $numer;
+    $numeryTestow[(int) $numer] = (int) $numer;
 }
 ksort($numeryTestow);
-?> 
-<?php layout_header('Wyniki wszystkich użytkowników', 'wyniki.php'); ?>
+
+layout_header('Moje wyniki', 'wyniki.php');
+?> ?>
 
 <section class="page panel">
     <div class="layout">
@@ -42,27 +50,32 @@ ksort($numeryTestow);
                     </tr>
                     </thead>
                     <tbody>
-                    <?php foreach ($numeryTestow as $numer => $etykieta): ?>
+                    <?php foreach ($numeryTestow as $numer): ?>
+                        <?php
+                        $testId = null;
+                        foreach ($testy as $tN => $tData) {
+                            if ((int) $tN === (int) $numer) {
+                                $testId = (int) $tData['id'];
+                                break;
+                            }
+                        }
+                        ?>
                         <tr>
-                            <td>Test <?= e($numer) ?></td>
+                            <td>Test <?= e((string) $numer) ?></td>
                             <td>
-                                <?php
-                                $testId = null;
-                                foreach ($testy as $tN => $tData) {
-                                    if ($tN == $numer) {
-                                        $testId = $tData['id'];
-                                        break;
-                                    }
-                                }
-                                if ($testId !== null && isset($userResults[$testId])) {
-                                    $wynik = $userResults[$testId];
-                                    echo sprintf('%d/%d (%d%%)', $wynik['wynik'] ?? 0, $wynik['maks'] ?? 0, $wynik['procent'] ?? 0);
-                                } else {
-                                    echo 'brak';
-                                }
-                                ?>
+                                <?php if ($testId !== null && isset($userResults[$testId])): ?>
+                                    <?= e((string) ($userResults[$testId]['wynik'] ?? 0)) ?>/<?= e((string) ($userResults[$testId]['maks'] ?? 0)) ?> (<?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%)
+                                <?php else: ?>
+                                    brak
+                                <?php endif; ?>
                             </td>
-                            <td><?php echo $userResults[$testId]['procent'] ?? 0; ?>%</td>
+                            <td>
+                                <?php if ($testId !== null && isset($userResults[$testId])): ?>
+                                    <?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%
+                                <?php else: ?>
+                                    0%
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
