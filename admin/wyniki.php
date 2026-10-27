@@ -10,79 +10,167 @@ require_login();
 $pdo  = db();
 $user = current_user();
 
-/* Pobierz wyniki bieżącego użytkownika */
-$stmtUserResults = $pdo->prepare('SELECT test_id, wynik, maks, procent FROM wyniki_testow WHERE user_id = :user_id');
-$stmtUserResults->execute([':user_id' => (int) $user['id']]);
-
-$userResults = [];
-foreach ($stmtUserResults->fetchAll() as $row) {
-    $userResults[(int) $row['test_id']] = $row;
-}
+$jestFirma = in_group(GROUP_FIRMA);
 
 /* Pobierz wszystkie opublikowane testy z numerami */
 $testy = testy_wg_numeru($pdo);
 
 /* Zbierz numerację testów */
-$numeryTestow = [];
-foreach ($testy as $numer => $data) {
-    $numeryTestow[(int) $numer] = (int) $numer;
-}
-ksort($numeryTestow);
+$numeryTestow = array_keys($testy);
+sort($numeryTestow, SORT_NUMERIC);
 
-layout_header('Moje wyniki', 'wyniki.php');
-?> ?>
+if ($jestFirma) {
+    /* Administrator widzi wyniki zwykłych użytkowników (bez administratorów) */
+    $stmtUsers = $pdo->query(
+        "SELECT id, imie, email, grupa 
+           FROM users 
+          WHERE aktywny = 1 
+            AND grupa != 'firma'
+       ORDER BY grupa ASC, imie ASC, email ASC"
+    );
+    $users = $stmtUsers->fetchAll();
 
-<section class="page panel">
-    <div class="layout">
-        <main class="content">
-            <div class="page-header">
-                <h1 class="page-title">Moje wyniki</h1>
-                <p class="muted small">Tylko Twoje wyniki</p>
-            </div>
+    /* Pobierz wszystkie wyniki testów */
+    $stmtAllResults = $pdo->query('SELECT user_id, test_id, wynik, maks, procent FROM wyniki_testow');
+    $allResults = [];
+    foreach ($stmtAllResults->fetchAll() as $row) {
+        $uid = (int) $row['user_id'];
+        $tid = (int) $row['test_id'];
+        if (!isset($allResults[$uid])) {
+            $allResults[$uid] = [];
+        }
+        $allResults[$uid][$tid] = $row;
+    }
 
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th>Test</th>
-                        <th>Wynik</th>
-                        <th>Procent</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($numeryTestow as $numer): ?>
-                        <?php
-                        $testId = null;
-                        foreach ($testy as $tN => $tData) {
-                            if ((int) $tN === (int) $numer) {
-                                $testId = (int) $tData['id'];
-                                break;
-                            }
-                        }
-                        ?>
+    layout_header('Wyniki wszystkich użytkowników', 'wyniki.php');
+    ?>
+    <section class="page panel">
+        <div class="layout">
+            <main class="content">
+                <div class="page-header">
+                    <h1 class="page-title">Wyniki wszystkich użytkowników</h1>
+                    <p class="muted small">Podgląd wyników wszystkich aktywnych użytkowników</p>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
                         <tr>
-                            <td>Test <?= e((string) $numer) ?></td>
-                            <td>
-                                <?php if ($testId !== null && isset($userResults[$testId])): ?>
-                                    <?= e((string) ($userResults[$testId]['wynik'] ?? 0)) ?>/<?= e((string) ($userResults[$testId]['maks'] ?? 0)) ?> (<?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%)
-                                <?php else: ?>
-                                    brak
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if ($testId !== null && isset($userResults[$testId])): ?>
-                                    <?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%
-                                <?php else: ?>
-                                    0%
-                                <?php endif; ?>
-                            </td>
+                            <th>Użytkownik</th>
+                            <th>Grupa</th>
+                            <?php foreach ($numeryTestow as $numer): ?>
+                                <th>Test <?= e((string) $numer) ?></th>
+                            <?php endforeach; ?>
                         </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </main>
-    </div>
-</section>
+                        </thead>
+                        <tbody>
+                        <?php if (empty($users)): ?>
+                            <tr>
+                                <td colspan="<?= 2 + count($numeryTestow) ?>" class="muted">Brak użytkowników</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($users as $u): ?>
+                                <?php
+                                $uid        = (int) $u['id'];
+                                $grupaLabel = GROUPS[$u['grupa']] ?? $u['grupa'];
+                                ?>
+                                <tr>
+                                    <td>
+                                        <strong><?= e($u['imie']) ?></strong><br>
+                                        <span class="muted small"><?= e($u['email']) ?></span>
+                                    </td>
+                                    <td><?= e($grupaLabel) ?></td>
+                                    <?php foreach ($numeryTestow as $numer): ?>
+                                        <?php
+                                        $numerInt = (int) $numer;
+                                        $testData = $testy[$numerInt] ?? null;
+                                        $testId   = $testData['id'] ?? null;
+                                        $res      = null;
 
-<?php layout_footer(); ?>
+                                        if ($testId !== null && isset($allResults[$uid][$testId])) {
+                                            $res = $allResults[$uid][$testId];
+                                        }
+                                        ?>
+                                        <td>
+                                            <?php if ($res !== null): ?>
+                                                <?= e((string) ($res['wynik'] ?? 0)) ?>/<?= e((string) ($res['maks'] ?? 0)) ?>
+                                                <span class="muted"> (<?= e((string) ($res['procent'] ?? 0)) ?>%)</span>
+                                            <?php else: ?>
+                                                <span class="muted">brak</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    <?php endforeach; ?>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+    </section>
+    <?php
+} else {
+    /* Użytkownik grupy materialy widzi tylko swoje wyniki */
+    $stmtUserResults = $pdo->prepare('SELECT test_id, wynik, maks, procent FROM wyniki_testow WHERE user_id = :user_id');
+    $stmtUserResults->execute([':user_id' => (int) $user['id']]);
+
+    $userResults = [];
+    foreach ($stmtUserResults->fetchAll() as $row) {
+        $userResults[(int) $row['test_id']] = $row;
+    }
+
+    layout_header('Moje wyniki', 'wyniki.php');
+    ?>
+    <section class="page panel">
+        <div class="layout">
+            <main class="content">
+                <div class="page-header">
+                    <h1 class="page-title">Moje wyniki</h1>
+                    <p class="muted small">Tylko Twoje wyniki</p>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Test</th>
+                            <th>Wynik</th>
+                            <th>Procent</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($numeryTestow as $numer): ?>
+                            <?php
+                            $numerInt = (int) $numer;
+                            $testData = $testy[$numerInt] ?? null;
+                            $testId   = $testData['id'] ?? null;
+                            ?>
+                            <tr>
+                                <td>Test <?= e((string) $numerInt) ?></td>
+                                <td>
+                                    <?php if ($testId !== null && isset($userResults[$testId])): ?>
+                                        <?= e((string) ($userResults[$testId]['wynik'] ?? 0)) ?>/<?= e((string) ($userResults[$testId]['maks'] ?? 0)) ?> (<?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%)
+                                    <?php else: ?>
+                                        <span class="muted">brak</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($testId !== null && isset($userResults[$testId])): ?>
+                                        <?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%
+                                    <?php else: ?>
+                                        0%
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+    </section>
+    <?php
+}
+
+layout_footer(); ?>

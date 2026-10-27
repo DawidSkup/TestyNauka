@@ -18,6 +18,22 @@ $isFirma = in_group(GROUP_FIRMA);
 /* ------------------------------------------------------------------ */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_require($_POST['csrf'] ?? null);
+    $akcjaPost = $_POST['akcja'] ?? '';
+
+    if ($akcjaPost === 'zapisz_imie') {
+        if (($user['grupa'] ?? '') !== GROUP_FIRMA) {
+            $imie = trim((string) ($_POST['imie_nazwisko'] ?? ''));
+            if ($imie !== '') {
+                $pdo->prepare('UPDATE users SET imie = :imie, updated_at = :now WHERE id = :id')
+                    ->execute([':imie' => $imie, ':now' => $now, ':id' => (int) $user['id']]);
+                flash('success', 'Dane zostały zapisane.');
+            } else {
+                flash('info', 'Pominięto podanie danych.');
+            }
+        }
+        $ref = $_SERVER['HTTP_REFERER'] ?? app_url('admin/testy.php');
+        redirect($ref);
+    }
 
     if ($action === 'dodaj_test') {
         require_group(GROUP_FIRMA);
@@ -759,6 +775,42 @@ layout_header('Testy', 'testy.php');
             <p class="muted small">Rozwiązano: <?= e(fmt_date($wynik['created_at'])) ?></p>
         </div>
     </div>
+
+    <?php
+    $ostatniTestPopup = false;
+    if (($user['grupa'] ?? '') !== GROUP_FIRMA) {
+        $stmtAllT = $pdo->query("SELECT COUNT(*) FROM testy WHERE status = 'opublikowany'");
+        $liczbaWszystkichT = (int) $stmtAllT->fetchColumn();
+        $stmtRoz = $pdo->prepare('SELECT COUNT(DISTINCT test_id) FROM wyniki_testow WHERE user_id = :user_id');
+        $stmtRoz->execute([':user_id' => (int) $user['id']]);
+        $liczbaRozwT = (int) $stmtRoz->fetchColumn();
+        if ($liczbaWszystkichT > 0 && $liczbaRozwT >= $liczbaWszystkichT) {
+            $ostatniTestPopup = true;
+        }
+    }
+    ?>
+    <?php if ($ostatniTestPopup): ?>
+        <div id="popup-imie-nazwisko-koniec" style="position:fixed;inset:0;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;">
+            <div style="background:#fff;border-radius:14px;max-width:420px;width:100%;box-shadow:0 25px 60px rgba(15,23,42,.25);overflow:hidden;">
+                <form method="post" action="<?= e(app_url('admin/testy.php')) ?>">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="akcja" value="zapisz_imie">
+                    <div style="padding:24px 24px 16px;">
+                        <p style="margin:0;font-size:16px;line-height:1.6;color:#0f172a;">
+                            podaj Imie I nazwisko (opcjonalnie jest potrzebne do dostania potwierdzenia kursu)
+                        </p>
+                        <div style="margin-top:16px;">
+                            <input type="text" name="imie_nazwisko" value="<?= e($user['imie'] ?? '') ?>" placeholder="Imię i nazwisko" autocomplete="name" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;padding:0 24px 24px;">
+                        <button type="submit" class="btn btn-primary">Zapisz</button>
+                        <button type="button" class="btn btn-ghost" onclick="document.getElementById('popup-imie-nazwisko-koniec').remove()">Pomiń</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    <?php endif; ?>
 
 <?php else: ?>
     <?php if ($isFirma): ?>

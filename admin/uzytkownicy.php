@@ -99,6 +99,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cel = 'logowanie';
         }
 
+        // Administrator nie moze generowac kodu dla innego administratora
+        if ($user['grupa'] === GROUP_FIRMA) {
+            $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+            $celUser = $stmt->fetch();
+            if ($celUser && $celUser['grupa'] === GROUP_FIRMA && $user['id'] !== $id) {
+                flash('warning', 'Nie mozna generowac kodu dla innego administratora.');
+                redirect(app_url('admin/uzytkownicy.php'));
+            }
+        }
+
         try {
             $wynik = generate_and_send_code($id, $cel);
 
@@ -160,14 +171,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $grupa = (string) ($_POST['grupa'] ?? '');
 
         // Administrator nie moze zmieniac grupy innego administratora
-        if ($id > 0 && $user['grupa'] === GROUP_FIRMA) {
-            $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id');
-            $stmt->execute([':id' => $id]);
-            $cel = $stmt->fetch();
-            if ($cel && $cel['grupa'] === GROUP_FIRMA && $user['id'] !== $cel['id']) {
-                flash('warning', 'Nie mozna zmieniac grupy innego administratora.');
-                redirect(app_url('admin/uzytkownicy.php'));
-            }
+        if ($id > 0 && $user['grupa'] === GROUP_FIRMA && $cel['grupa'] === GROUP_FIRMA && $user['id'] !== $cel['id']) {
+            flash('warning', 'Nie mozna zmieniac grupy innego administratora.');
+            redirect(app_url('admin/uzytkownicy.php'));
         }
 
         if (isset(GROUPS[$grupa])) {
@@ -186,6 +192,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $cel = $stmt->fetch();
+
+        // Administrator nie moze zmieniac wymogu kodu innego administratora
+        if ($cel && $user['grupa'] === GROUP_FIRMA && $cel['grupa'] === GROUP_FIRMA && $user['id'] !== $cel['id']) {
+            flash('warning', 'Nie mozna zmieniac wymogu kodu innego administratora.');
+            redirect(app_url('admin/uzytkownicy.php'));
+        }
 
         if ($cel) {
             $nowa = (int) $cel['wymaga_kod'] === 1 ? 0 : 1;
@@ -224,6 +236,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($akcja === 'reset') {
         $id    = (int) ($_POST['user_id'] ?? 0);
         $haslo = (string) ($_POST['haslo'] ?? '');
+
+        // Administrator nie moze resetowac hasla innego administratora
+        if ($id > 0 && $user['grupa'] === GROUP_FIRMA && $user['id'] !== $id) {
+            $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+            $cel = $stmt->fetch();
+            if ($cel && $cel['grupa'] === GROUP_FIRMA) {
+                flash('warning', 'Nie mozna resetowac hasla innego administratora.');
+                redirect(app_url('admin/uzytkownicy.php'));
+            }
+        }
 
         if (strlen($haslo) < 8) {
             flash('warning', 'Nowe hasło musi mieć co najmniej 8 znaków.');
@@ -291,7 +314,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                 <th>E-mail</th>
                 <th>Grupa</th>
                 <th>Status</th>
-                <?php if ((int) $biezacy['grupa'] === GROUP_FIRMA): ?>
+                <?php if ((int) $biezacy['grupa'] === GROUP_FIRMA && $u['grupa'] !== GROUP_FIRMA): ?>
                 <th>Aktywny kod</th>
                 <?php endif; ?>
                 <th>Wymóg kodu</th>
@@ -334,7 +357,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                             <span class="badge badge-warn">nieaktywowane</span>
                         <?php endif; ?>
                     </td>
-                    <?php if ((int) $biezacy['grupa'] === GROUP_FIRMA): ?>
+                    <?php if ((int) $biezacy['grupa'] === GROUP_FIRMA && $u['grupa'] !== GROUP_FIRMA): ?>
                     <td>
                         <?php if (!empty($u['aktywny_kod'])): ?>
                             <span class="code-inline"><?= e($u['aktywny_kod']) ?></span>
