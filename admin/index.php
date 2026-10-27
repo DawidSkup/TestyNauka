@@ -136,9 +136,6 @@ layout_header('Panel startowy', 'index.php');
         <span class="stat-value"><?= e((string) $statUsers) ?></span>
         <span class="stat-hint"><?= e((string) $statActive) ?> aktywnych kont</span>
     </div>
-
-    </div>
-
     <div class="card stat">
         <span class="stat-label">Prezentacje</span>
         <span class="stat-value"><?= e((string) $statSlajdy) ?></span>
@@ -147,35 +144,13 @@ layout_header('Panel startowy', 'index.php');
     <div class="card stat">
         <span class="stat-label">Aktywne kody</span>
         <span class="stat-value"><?= e((string) $statKody) ?></span>
-        <span class="stat-hint">
-            ważne <?= e((string) CODE_TTL_MINUTES) ?> min · <?= e((string) $statZaproszenia) ?> zaproszeń
-        </span>
+        <span class="stat-hint">ważne <?= e((string) CODE_TTL_MINUTES) ?> min · <?= e((string) $statZaproszenia) ?> zaproszeń</span>
     </div>
-    <div class="card stat">
-        <span class="stat-label">Twoja grupa</span>
-        <span class="stat-value stat-value-sm"><?= e(GROUPS[$user['grupa']] ?? $user['grupa']) ?></span>
-        <span class="stat-hint"><?= e($user['email']) ?></span>
-    </div>
-    <div class="card stat">
-        <span class="stat-label">Twoje testy</span>
-        <span class="stat-value"><?= e(count(wyniki_uzytkownika($pdo, (int) $user['id']))) ?></span>
-        <span class="stat-hint">rozwiązanych testów</span>
-    </div>
-
-    <!-- Statystyka rozwiązanych testów przez bieżącego użytkownika -->
     <div class="card stat">
         <span class="stat-label">Twoje rozwiązane testy</span>
-        <span class="stat-value"><?= e(count(wyniki_uzytkownika($pdo, (int) $user['id']))) ?></span>
-        <span class="stat-hint">rozwiązanych testów</span>
+        <span class="stat-value"><?= e((string) count(wyniki_uzytkownika($pdo, (int) $user['id']))) ?></span>
+        <span class="stat-hint"><?= e($user['imie']) ?></span>
     </div>
-
-    <?php if (in_group(GROUP_FIRMA)): ?>
-    <div class="card stat">
-        <span class="stat-label">Twoje rozwiązane testy</span>
-        <span class="stat-value"><?= e(count(wyniki_uzytkownika($pdo, (int) $user['id']))) ?></span>
-        <span class="stat-hint">rozwiązanych testów</span>
-    </div>
-    <?php endif; ?>
 </section>
 
 <section class="grid grid-2">
