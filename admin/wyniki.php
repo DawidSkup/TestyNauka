@@ -1,4 +1,9 @@
+<?php
 require_once __DIR__ . '/_layout.php';
+
+require_login();
+
+$pdo = db();
 
 $user = current_user();
 
@@ -16,7 +21,7 @@ foreach ($testy as $numer => $data) {
     $numeryTestow[$numer] = $numer;
 }
 ksort($numeryTestow);
-?>
+?> 
 <?php layout_header('Wyniki wszystkich użytkowników', 'wyniki.php'); ?>
 
 <section class="page panel">
@@ -41,13 +46,23 @@ ksort($numeryTestow);
                         <tr>
                             <td>Test <?= e($numer) ?></td>
                             <td>
-                                <?php if (isset($userResults[$testy[$numer]['id']])): ?>
-                                    <?= sprintf('%d/%d (%d%%)', $userResults[$testy[$numer]['id']]['wynik'] ?? 0, $userResults[$testy[$numer]['id']]['maks'] ?? 0, $userResults[$testy[$numer]['id']]['procent'] ?? 0); ?>
-                                <?php else: ?>
-                                    brak
-                                <?php endif; ?>
+                                <?php
+                                $testId = null;
+                                foreach ($testy as $tN => $tData) {
+                                    if ($tN == $numer) {
+                                        $testId = $tData['id'];
+                                        break;
+                                    }
+                                }
+                                if ($testId !== null && isset($userResults[$testId])) {
+                                    $wynik = $userResults[$testId];
+                                    echo sprintf('%d/%d (%d%%)', $wynik['wynik'] ?? 0, $wynik['maks'] ?? 0, $wynik['procent'] ?? 0);
+                                } else {
+                                    echo 'brak';
+                                }
+                                ?>
                             </td>
-                            <td><?php echo $userResults[$testy[$numer]['id']]['procent'] ?? 0; ?>%</td>
+                            <td><?php echo $userResults[$testId]['procent'] ?? 0; ?>%</td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
