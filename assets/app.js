@@ -234,7 +234,7 @@
     /* ---------------------------------------------------------------- */
     const stage = document.getElementById('previewStage');
     if (stage) {
-        const slides = Array.prototype.slice.call(stage.querySelectorAll('.slide'));
+        const slides = Array.prototype.slice.call(stage.querySelectorAll('.slide:not(.slide-confirm)'));
         const counter = document.getElementById('previewCounter');
         const prevBtn = document.getElementById('previewPrev');
         const nextBtn = document.getElementById('previewNext');
