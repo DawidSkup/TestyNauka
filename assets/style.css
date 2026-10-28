@@ -196,11 +196,12 @@ small { font-size: .8rem; }
     font: inherit; font-size: .88rem; font-weight: 550;
     cursor: pointer;
     text-decoration: none;
-    transition: background .15s, border-color .15s, color .15s, transform .05s;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, transform .05s ease;
     white-space: nowrap;
+    will-change: transform;
 }
-.btn:hover { background: var(--surface-2); text-decoration: none; }
-.btn:active { transform: translateY(1px); }
+.btn:hover { transform: scale(1.02); }
+.btn:active { transform: scale(0.98) translateY(1px); }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
 
 .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
