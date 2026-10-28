@@ -450,10 +450,13 @@ function consume_invitation(int $invitationId): bool
  * Zakłada konto na podstawie zaproszenia (e-mail + kod).
  * Zwraca id nowego użytkownika albo rzuca RuntimeException z komunikatem dla użytkownika.
  */
-function register_from_invitation(string $email, string $kod, ?string $imie = '', string $haslo): int
+function register_from_invitation(string $email, string $kod, string $imie, string $haslo): int
 {
     $pdo = db();
     $email = mb_strtolower(trim($email));
+    
+    // Obsługaoptionalnego imienia - jeśli nie podano, użyj domyślnej wartości
+    $imie = $imie !== '' ? $imie : 'Użytkownik';
 
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :e');
     $stmt->execute([':e' => $email]);
