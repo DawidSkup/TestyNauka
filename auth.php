@@ -115,6 +115,14 @@ function create_code(int $userId, string $cel = 'logowanie'): array
     $stmt->execute([':id' => $userId]);
     $grupa = (string) ($stmt->fetchColumn() ?: GROUP_MATERIALY);
 
+    // Najpierw sprawdź, czy istnieje aktywny kod dla tego użytkownika i celu
+    $istniejący = active_code($userId, $cel);
+    if ($istniejący) {
+        // Kod już istnieje – zwróć go, nie generuj nowego i nie oznaczaj jako użyte
+        return ['kod' => $istniejący['kod'], 'wygasa_at' => $istniejący['wygasa_at']];
+    }
+    
+    // Oznacz stare kody jako użyte, zanim utworzymy nowy
     $pdo->prepare('UPDATE kody SET uzyty_at = :now WHERE user_id = :u AND cel = :c AND uzyty_at IS NULL')
         ->execute([':now' => date('Y-m-d H:i:s'), ':u' => $userId, ':c' => $cel]);
 
