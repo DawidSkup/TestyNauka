@@ -199,9 +199,13 @@ small { font-size: .8rem; }
     transition: background .15s ease, border-color .15s ease, color .15s ease;
     white-space: nowrap;
     will-change: transform;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
     transform-style: preserve-3d;
 }
-.btn:hover { transform: scale(1.02); }
+.btn:hover { background: var(--surface-2); }
 .btn:active { background: var(--surface); }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
 
