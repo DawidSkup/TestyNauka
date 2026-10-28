@@ -419,6 +419,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                         </form>
 
                         <form method="post" class="form-inline">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="akcja" value="usun">
                             <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
                             <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Usunięcie trwale usunie konto, wszystkie kody, slajdy i wyniki testów.');">
