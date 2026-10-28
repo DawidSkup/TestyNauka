@@ -31,8 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Podaj poprawny adres e-mail.';
     } elseif (!preg_match('/^[A-Z0-9]{6}$/', $kod)) {
         $error = 'Kod musi składać się z 6 znaków – wielkich liter lub cyfr.';
-    } elseif (mb_strlen($imie) < 2) {
-        $error = 'Podaj imię i nazwisko.';
     } elseif (strlen($haslo) < 8) {
         $error = 'Hasło musi mieć co najmniej 8 znaków.';
     } elseif ($haslo !== $haslo2) {
@@ -44,7 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($_SESSION['rej_bledy'], $_SESSION['rej_blokada_do']);
 
             login_user($newId, true);
-            flash('success', 'Konto utworzone. Witaj, ' . $imie . '!');
+            $powitanie = trim($imie) !== '' ? 'Witaj, ' . $imie . '!' : 'Konto utworzone!';
+            flash('success', 'Konto utworzone. ' . $powitanie);
             redirect(app_url('admin/index.php'));
         } catch (RuntimeException $ex) {
             $error = $ex->getMessage();
@@ -93,8 +92,8 @@ $flashes = flash_take();
         <input type="text" id="kod" name="kod" class="input-code" maxlength="6"
                pattern="[A-Za-z0-9]{6}" placeholder="K7M2QX" value="<?= e($kod) ?>" required autocomplete="one-time-code">
 
-        <label for="imie">Imię i nazwisko</label>
-        <input type="text" id="imie" name="imie" value="<?= e($imie) ?>" required autocomplete="name">
+        <label for="imie">Imię i nazwisko (opcjonalnie)</label>
+        <input type="text" id="imie" name="imie" value="<?= e($imie) ?>" autocomplete="name">
 
         <label for="haslo">Hasło</label>
         <input type="password" id="haslo" name="haslo" minlength="8" required autocomplete="new-password">
