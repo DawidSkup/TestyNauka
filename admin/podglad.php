@@ -169,7 +169,7 @@ $uklady = [
 <?php if (!$slajdy): ?>
     <div class="preview-empty">
         <?php if ($prezentacja): ?>
-            <p>Ta prezentacja nie ma slajdów do wyświetlenia.</p>
+            <p>ta prezentacja nie jest zakonczona</p>
             <?php if ($isFirma): ?>
                 <a class="btn btn-primary" href="<?= e(app_url('admin/prezentacje.php?akcja=edytuj&id=' . $prezentacjaId)) ?>">Dodaj slajdy</a>
             <?php else: ?>
