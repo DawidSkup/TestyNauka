@@ -92,9 +92,6 @@ $flashes = flash_take();
         <input type="text" id="kod" name="kod" class="input-code" maxlength="6"
                pattern="[A-Za-z0-9]{6}" placeholder="K7M2QX" value="<?= e($kod) ?>" required autocomplete="one-time-code">
 
-        <label for="imie">Imię i nazwisko (opcjonalnie)</label>
-        <input type="text" id="imie" name="imie" value="<?= e($imie) ?>" autocomplete="name">
-
         <label for="haslo">Hasło</label>
         <input type="password" id="haslo" name="haslo" minlength="8" required autocomplete="new-password">
 
