@@ -204,7 +204,7 @@ small { font-size: .8rem; }
     image-rendering: crisp-edges;
     transform-style: preserve-3d;
 }
-.btn:hover { background: var(--surface-2); }
+.btn:hover { transform: scale(1.02); background: var(--surface-2); }
 .btn:active { background: var(--surface); }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
 
