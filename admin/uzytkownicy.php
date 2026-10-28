@@ -232,7 +232,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect(app_url('admin/uzytkownicy.php'));
     }
 
-    /* --- Reset hasła ----------------------------------------------------- */
+    /* --- Usuwanie użytkownika ----------------------------------------------- */
+    if ($akcja === 'usun') {
+        $id = (int) ($_POST['user_id'] ?? 0);
+
+        // Administrator nie moze usuwac innego administratora
+        if ($user['grupa'] === GROUP_FIRMA) {
+            $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+            $usun = $stmt->fetch();
+            if ($usun && $usun['grupa'] === GROUP_FIRMA && $user['id'] !== $usun['id']) {
+                flash('warning', 'Nie mozna usunac innego administratora.');
+                redirect(app_url('admin/uzytkownicy.php'));
+            }
+        }
+
+        if ($id > 0 && $id !== $user['id']) {
+            // Usun kody associated z kontem
+            $pdo->prepare('DELETE FROM kody WHERE user_id = :u')->execute([':u' => $id]);
+            // Usun wyniki testow associated z kontem
+            $pdo->prepare('DELETE FROM wyniki_testow WHERE user_id = :u')->execute([':u' => $id]);
+            // Usun slajdy stworzone przez tego uzytkownika
+            $pdo->prepare('DELETE FROM slajdy WHERE autor_id = :u')->execute([':u' => $id]);
+            // Usun konto
+            $pdo->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $id]);
+            log_action('usun_uzytkownika', 'user_id=' . $id, (int) $user['id']);
+            flash('success', 'Użytkownik został usunięty.');
+        } else {
+            flash('error', 'Nie można usunąć tego użytkownika.');
+        }
+
+        redirect(app_url('admin/uzytkownicy.php'));
+    }
     if ($akcja === 'reset') {
         $id    = (int) ($_POST['user_id'] ?? 0);
         $haslo = (string) ($_POST['haslo'] ?? '');
@@ -393,6 +424,15 @@ function render_tabela_kont(array $lista, array $biezacy): void
                             <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
                             <button type="submit" class="btn btn-sm btn-ghost">
                                 <?= (int) $u['wymaga_kod'] === 1 ? 'Bez wymogu kodu' : 'Wymaga kodu' ?>
+                            </button>
+                        </form>
+
+                        <form method="post" class="form-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="akcja" value="usun">
+                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Usunięcie trwale usunie konto, wszystkie kody, slajdy i wyniki testów.');">
+                                Usuń
                             </button>
                         </form>
 
