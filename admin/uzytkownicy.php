@@ -419,16 +419,6 @@ function render_tabela_kont(array $lista, array $biezacy): void
                         </form>
 
                         <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="wymaga_kod">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <button type="submit" class="btn btn-sm btn-ghost">
-                                <?= (int) $u['wymaga_kod'] === 1 ? 'Bez wymogu kodu' : 'Wymaga kodu' ?>
-                            </button>
-                        </form>
-
-                        <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
                             <input type="hidden" name="akcja" value="usun">
                             <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
                             <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Usunięcie trwale usunie konto, wszystkie kody, slajdy i wyniki testów.');">
@@ -440,29 +430,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                             <?= csrf_field() ?>
                             <input type="hidden" name="akcja" value="kod">
                             <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <input type="hidden" name="cel" value="aktywacja">
-                            <button type="submit" class="btn btn-sm btn-ghost">Kod aktywacyjny</button>
-                        </form>
-
-                        <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="przełącz">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <button type="submit" class="btn btn-sm btn-ghost">
-                                <?= (int) $u['aktywny'] === 1 ? 'Zablokuj' : 'Odblokuj' ?>
-                            </button>
-                        </form>
-
-                        <details class="inline-details">
-                            <summary>Reset hasła</summary>
-                            <form method="post" class="form-stack">
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="akcja" value="reset">
-                                <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                                <input type="text" name="haslo" minlength="8" placeholder="Nowe hasło" required>
-                                <button type="submit" class="btn btn-sm">Ustaw hasło</button>
-                            </form>
-                        </details>
+                            
                     </td>
                 </tr>
             <?php endforeach; ?>
