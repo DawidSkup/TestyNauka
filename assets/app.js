@@ -244,13 +244,32 @@
 
         function show(i) {
             if (!slides.length) return;
-            index = (i + slides.length) % slides.length;
+            if (i < 0 || i >= slides.length) return;
+            index = i;
             slides.forEach(function (s, n) { s.classList.toggle('is-current', n === index); });
             if (counter) counter.textContent = (index + 1) + ' / ' + slides.length;
+            if (prevBtn) {
+                prevBtn.style.display = (index <= 0) ? 'none' : 'inline-flex';
+            }
+            if (nextBtn) {
+                nextBtn.style.display = (index >= slides.length - 1) ? 'none' : 'inline-flex';
+            }
         }
 
-        if (prevBtn) prevBtn.addEventListener('click', function () { show(index - 1); });
-        if (nextBtn) nextBtn.addEventListener('click', function () { show(index + 1); });
+        if (prevBtn) {
+            prevBtn.style.display = 'none';
+            prevBtn.addEventListener('click', function () { 
+                if (index <= 0) return;
+                show(index - 1); 
+            });
+        }
+        if (nextBtn) {
+            nextBtn.style.display = slides.length > 1 ? 'inline-flex' : 'none';
+            nextBtn.addEventListener('click', function () { 
+                if (index >= slides.length - 1) return;
+                show(index + 1); 
+            });
+        }
 
         /* Pełny ekran */
         function updateFullscreenButton() {
@@ -258,7 +277,7 @@
             const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
             const isFs = !!fsElement;
             console.log('[Fullscreen] updateFullscreenButton, isFs=', isFs, 'element=', fsElement);
-            fsBtn.textContent = isFs ? '⛶' : '⛶';
+            fsBtn.textContent = isFs ? '⛶ Wyjdź' : '⛶ Pełny ekran';
             fsBtn.setAttribute('aria-label', isFs ? 'Wyjdź z pełnego ekranu' : 'Pełny ekran');
             fsBtn.title = isFs ? 'Wyjdź z pełnego ekranu' : 'Pełny ekran (F)';
         }
@@ -319,9 +338,13 @@
 
         document.addEventListener('keydown', function (ev) {
             if (ev.key === 'ArrowRight' || ev.key === ' ' || ev.key === 'PageDown') {
-                ev.preventDefault(); show(index + 1);
+                ev.preventDefault();
+                if (index >= slides.length - 1) return;
+                show(index + 1);
             } else if (ev.key === 'ArrowLeft' || ev.key === 'PageUp') {
-                ev.preventDefault(); show(index - 1);
+                ev.preventDefault(); 
+                if (index <= 0) return;
+                show(index - 1);
             } else if (ev.key === 'Escape') {
                 const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
                 if (fsElement) {
@@ -342,6 +365,11 @@
             }
         });
 
+        index = 0;
+        slides.forEach(function (s, n) { s.classList.toggle('is-current', n === 0); });
+        if (counter) counter.textContent = '1 / ' + slides.length;
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = slides.length > 1 ? 'inline-flex' : 'none';
         show(0);
     }
 })();

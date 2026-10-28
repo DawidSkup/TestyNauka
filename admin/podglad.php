@@ -26,6 +26,53 @@ $backUrl = $isFirma
     : app_url('admin/prezentacje.php');
 $backLabel = '← Panel';
 
+$potwierdzona = false;
+if (!$isFirma && $user !== null && $prezentacjaId > 0) {
+    $obejrzaneLista = obejrzane_prezentacje($pdo, (int) $user['id']);
+    $potwierdzona = in_array($prezentacjaId, $obejrzaneLista, true);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $prezentacjaId > 0 && !$isFirma && $user !== null) {
+    csrf_require($_POST['csrf'] ?? null);
+    $akcjaPost = $_POST['akcja'] ?? '';
+
+    if ($akcjaPost === 'potwierdz_prezentacje') {
+        $stmt = $pdo->prepare('SELECT * FROM prezentacje WHERE id = :id');
+        $stmt->execute([':id' => $prezentacjaId]);
+        $prezentacjaPotw = $stmt->fetch() ?: null;
+
+        if (!$prezentacjaPotw) {
+            flash('error', 'Prezentacja nie istnieje.');
+            redirect(app_url('admin/prezentacje.php'));
+        }
+
+        if ($prezentacjaPotw['status'] !== 'opublikowany') {
+            flash('warning', 'Ta prezentacja nie jest jeszcze opublikowana.');
+            redirect(app_url('admin/prezentacje.php'));
+        }
+
+        $blokadaTestuPotw = blokujacy_test(
+            (string) $prezentacjaPotw['tytul'],
+            testy_wg_numeru($pdo),
+            rozwiazane_testy($pdo, (int) $user['id'])
+        );
+
+        if ($blokadaTestuPotw !== null) {
+            flash('warning', 'Zanim potwierdzisz zapoznanie się z tą prezentacją, rozwiąż test „' . $blokadaTestuPotw['tytul'] . '”.');
+            redirect(app_url('admin/prezentacje.php'));
+        }
+
+        if (!$potwierdzona) {
+            oznacz_prezentacje_obejrzana($pdo, (int) $user['id'], $prezentacjaId);
+            flash('success', 'Potwierdziłeś zapoznanie się z prezentacją. Test został odblokowany.');
+        } else {
+            flash('info', 'Zapoznanie z tą prezentacją zostało już potwierdzone.');
+        }
+
+        redirect(app_url('admin/prezentacje.php'));
+    }
+}
+
 if ($prezentacjaId > 0) {
     $stmt = $pdo->prepare('SELECT * FROM prezentacje WHERE id = :id');
     $stmt->execute([':id' => $prezentacjaId]);
@@ -74,12 +121,6 @@ if ($prezentacjaId > 0) {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':id' => $prezentacjaId]);
     $slajdy = $stmt->fetchAll();
-
-    // Obejrzenie prezentacji odblokowuje test o tym samym numerze.
-    // Pusta prezentacja też się liczy – inaczej testu nie dałoby się nigdy odblokować.
-    if (!$isFirma && $user !== null) {
-        oznacz_prezentacje_obejrzana($pdo, (int) $user['id'], $prezentacjaId);
-    }
 } else {
     $sql = 'SELECT s.*, u.imie AS autor FROM slajdy s LEFT JOIN users u ON u.id = s.autor_id';
     if ($tylkoPublikowane) {
@@ -121,7 +162,7 @@ $uklady = [
             <a class="btn btn-ghost btn-sm" href="<?= e($statusUrl . 'wszystkie') ?>">Pokaż też szkice</a>
         <?php endif; ?>
     <?php endif; ?>
-    <button type="button" class="btn btn-ghost btn-sm" id="previewFullscreen" aria-label="Pełny ekran">⛶</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="previewFullscreen" aria-label="Pełny ekran">⛶ Pełny ekran</button>
     <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/prezentacje.php')) ?>">Prezentacje</a>
 </header>
 
@@ -142,7 +183,7 @@ $uklady = [
         <?php endif; ?>
     </div>
 <?php else: ?>
-    <div class="preview-stage" id="previewStage" data-count="<?= e((string) count($slajdy)) ?>">
+    <div class="preview-stage" id="previewStage" data-count="<?= e((string) count($slajdy) + (!$isFirma && $prezentacjaId > 0 && $user !== null && !$potwierdzona ? 1 : 0)) ?>">
         <?php foreach ($slajdy as $i => $s): ?>
             <article class="slide slide-<?= e($s['uklad']) ?><?= $i === 0 ? ' is-current' : '' ?>" data-index="<?= e((string) $i) ?>">
                 <?php if (!empty($s['obraz'])): ?>
@@ -172,6 +213,19 @@ $uklady = [
                 </div>
             </article>
         <?php endforeach; ?>
+        <?php if (!$isFirma && $prezentacjaId > 0 && $user !== null && !$potwierdzona && $slajdy): ?>
+            <article class="slide slide-confirm" data-index="<?= e((string) count($slajdy)) ?>">
+                <div class="slide-body">
+                    <h1 class="slide-title">Potwierdzenie</h1>
+                    <p class="slide-text">Aby odblokować przypisany do tej prezentacji test, potwierdź, że zapoznałeś(aś) się z całością prezentacji.</p>
+                    <form method="post" action="<?= e(app_url('admin/podglad.php?id=' . $prezentacjaId)) ?>" class="slide-confirm-form">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="akcja" value="potwierdz_prezentacje">
+                        <button class="btn btn-primary" type="submit">Potwierdzam, że zapoznałem(am) się z prezentacją</button>
+                    </form>
+                </div>
+            </article>
+        <?php endif; ?>
     </div>
 
     <nav class="preview-nav">
@@ -179,6 +233,8 @@ $uklady = [
         <button type="button" class="btn btn-ghost" id="previewNext" aria-label="Następny slajd">Następny ›</button>
     </nav>
 <?php endif; ?>
+
+
 
 <script src="<?= e(app_url('assets/app.js')) ?>"></script>
 </body>

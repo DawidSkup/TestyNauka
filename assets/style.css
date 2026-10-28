@@ -473,6 +473,9 @@ select { cursor: pointer; }
 .slide-cta { margin-top: 20px; }
 .slide-meta { margin-top: 22px; display: flex; align-items: center; gap: 10px; }
 .slide-obraz-tekst .slide-media { order: 2; }
+.slide-confirm .slide-body { text-align: center; }
+.slide-confirm .slide-text { max-width: 520px; margin: 0 auto 20px; }
+.slide-confirm-form { display: flex; justify-content: center; }
 .preview-nav { display: flex; justify-content: center; gap: 12px; padding: 20px; }
 .preview-nav .btn-ghost { color: #cbd5e1; border-color: #334155; }
 .preview-nav .btn-ghost:hover { background: #1e293b; }
@@ -486,6 +489,21 @@ select { cursor: pointer; }
     visibility: hidden !important;
     transform: translateY(-100%) !important;
     pointer-events: none !important;
+}
+
+.page-preview:fullscreen #previewFullscreen,
+.page-preview:-webkit-full-screen #previewFullscreen,
+.page-preview:-ms-fullscreen #previewFullscreen {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    z-index: 2000 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    background: rgba(15, 23, 42, .9) !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
 }
 
 /* W pełnym ekranie nawigacja na dole zawsze widoczna */
@@ -503,6 +521,67 @@ select { cursor: pointer; }
     padding: 10px 20px !important;
     border: 1px solid #334155 !important;
     display: flex !important;
+}
+
+.page-preview:fullscreen .presentation-confirm,
+.page-preview:-webkit-full-screen .presentation-confirm,
+.page-preview:-ms-fullscreen .presentation-confirm {
+    position: fixed !important;
+    top: 20px !important;
+    left: 50% !important;
+    bottom: auto !important;
+    transform: translateX(-50%) !important;
+    z-index: 99999 !important;
+    width: auto !important;
+    max-width: 98vw !important;
+    pointer-events: auto !important;
+}
+
+.page-preview:fullscreen .presentation-confirm .card,
+.page-preview:-webkit-full-screen .presentation-confirm .card,
+.page-preview:-ms-fullscreen .presentation-confirm .card {
+    margin: 0 !important;
+    background: rgba(15, 23, 42, .98) !important;
+    border: 1px solid #475569 !important;
+    color: #e2e8f0 !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .7) !important;
+    padding: 14px 18px !important;
+    text-align: center;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.page-preview:fullscreen .presentation-confirm .card p,
+.page-preview:-webkit-full-screen .presentation-confirm .card p,
+.page-preview:-ms-fullscreen .presentation-confirm .card p {
+    margin: 0 !important;
+}
+
+.page-preview:fullscreen .presentation-confirm .card .muted,
+.page-preview:-webkit-full-screen .presentation-confirm .card .muted,
+.page-preview:-ms-fullscreen .presentation-confirm .card .muted {
+    color: #cbd5e1 !important;
+}
+
+.page-preview:fullscreen .presentation-confirm .btn-ghost,
+.page-preview:-webkit-full-screen .presentation-confirm .btn-ghost,
+.page-preview:-ms-fullscreen .presentation-confirm .btn-ghost {
+    color: #e2e8f0 !important;
+    border-color: #475569 !important;
+}
+
+.page-preview:fullscreen .presentation-confirm .btn-ghost:hover,
+.page-preview:-webkit-full-screen .presentation-confirm .btn-ghost:hover,
+.page-preview:-ms-fullscreen .presentation-confirm .btn-ghost:hover {
+    background: #1e293b !important;
+}
+
+.presentation-confirm-form,
+.presentation-confirm-actions {
+    display: flex;
+    justify-content: center;
 }
 
 /* Upewnij się że slajdy w pełnym ekranie używają całej wysokości */
