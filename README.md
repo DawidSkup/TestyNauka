@@ -41,7 +41,8 @@ i kodami) oraz **grupę materiałów** (dodawanie i edycja slajdów).
 - Sesja, ochrona CSRF i blokada po 5 błędnych próbach (10 minut) w obu trybach.
 - Dwie grupy z ograniczonym dostępem (`firma` / `materialy`), brak dostępu → 403.
 - **Administrator nie zakłada kont** – wysyła kod rejestracyjny na e-mail, a odbiorca
-  zakłada konto samodzielnie w `rejestracja.php` (e-mail + kod + imię + hasło).
+  zakłada konto samodzielnie w `rejestracja.php` (e-mail + kod + hasło). Imię i nazwisko
+  są opcjonalne przy rejestracji.
 - **Konta grupy firmy z wymogiem kodu** – administrator może włączyć dla konta flagę
   „Wymaga kodu” (przycisk w sekcji `Użytkownicy`). Takie konto **nie zaloguje się**
   bez kodu wysłanego przez administratora; po zużyciu kodu wymóg obowiązuje przy

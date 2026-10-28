@@ -62,8 +62,8 @@ Na stronie logowania użytkownik **wybiera sposób logowania** (dwie zakładki):
    (`firma` / `materialy`), po czym naciska **„Generuj kod i wyślij”**.
 2. Na wskazany adres leci e-mail z **6-znakowym kodem rejestracyjnym** oraz linkiem do
    strony `rejestracja.php`. Kod jest ważny 15 minut i jednorazowy.
-3. Odbiorca wchodzi na `rejestracja.php` i podaje: e-mail, kod, imię i nazwisko oraz hasło
-   (z potwierdzeniem).
+3. Odbiorca wchodzi na `rejestracja.php` i podaje: e-mail, kod, **hasło** (z potwierdzeniem).
+   Imię i nazwisko są **opcjonalne** – pole można pominąć.
 4. Konto powstaje **aktywne i aktywowane**, w grupie wskazanej w zaproszeniu, a użytkownik
    zostaje zalogowany. Przy **kolejnych** logowaniach konto grupy `materialy` loguje się
    już samym kodem z e-maila (zakładka „Użytkownik”).

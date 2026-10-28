@@ -64,6 +64,8 @@
 - [x] `admin/uzytkownicy.php` – lista użytkowników: imię, e-mail, grupa, status, ostatni kod, liczba slajdów
 - [x] `admin/uzytkownicy.php` – **wysyłka kodu rejestracyjnego** (e-mail + grupa) – administrator
       nie zakłada kont, odbiorca rejestruje się samodzielnie
+- [x] `admin/uzytkownicy.php` – **administrator wysyła tylko kod**, użytkownik zakłada konto samodzielnie
+      w panelu rejestracji (e-mail + kod + hasło); imię i nazwisko są opcjonalne
 - [x] `admin/uzytkownicy.php` – lista zaproszeń: status (oczekuje / wygasłe / wykorzystane),
       ponowna wysyłka kodu, anulowanie zaproszenia
 - [x] `admin/uzytkownicy.php` – zmiana grupy (select z autosave), blokada/wyłączenie konta
