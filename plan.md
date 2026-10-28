@@ -67,6 +67,7 @@
       nie zakłada kont, odbiorca rejestruje się samodzielnie
 - [x] `admin/uzytkownicy.php` – **administrator wysyła tylko kod**, użytkownik zakłada konto samodzielnie
       w panelu rejestracji (e-mail + kod + hasło); imię i nazwisko są opcjonalne
+- [x] `admin/uzytkownicy.php` – **administrator może usuwać konta użytkowników** (z panelu `Użytkownicy`); administrator nie może usunąć innego administratora ani własnego konta; usuwanie trwale usuwa konto, kody, slajdy i wyniki testów
 - [x] `admin/uzytkownicy.php` – lista zaproszeń: status (oczekuje / wygasłe / wykorzystane),
       ponowna wysyłka kodu, anulowanie zaproszenia
 - [x] `admin/uzytkownicy.php` – zmiana grupy (select z autosave), blokada/wyłączenie konta
