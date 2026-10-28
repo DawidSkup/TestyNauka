@@ -43,6 +43,9 @@ i kodami) oraz **grupę materiałów** (dodawanie i edycja slajdów).
 - **Administrator nie zakłada kont** – wysyła kod rejestracyjny na e-mail, a odbiorca
   zakłada konto samodzielnie w `rejestracja.php` (e-mail + kod + hasło). Imię i nazwisko
   są opcjonalne przy rejestracji.
+- **Administrator może usuwać konta użytkowników** (z panelu `Użytkownicy`); administrator
+  nie może usunąć innego administratora ani własnego konta; usuwanie trwale usuwa konto,
+  kody, slajdy i wyniki testów
 - **Konta grupy firmy z wymogiem kodu** – administrator może włączyć dla konta flagę
   „Wymaga kodu” (przycisk w sekcji `Użytkownicy`). Takie konto **nie zaloguje się**
   bez kodu wysłanego przez administratora; po zużyciu kodu wymóg obowiązuje przy

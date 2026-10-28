@@ -62,6 +62,7 @@
 ## Faza 5 – Użytkownicy (tylko grupa `firma`) ✅
 
 - [x] `admin/uzytkownicy.php` – lista użytkowników: imię, e-mail, grupa, status, ostatni kod, liczba slajdów
+- [x] `admin/uzytkownicy.php` – **możliwość usuwania kont użytkowników** (administrator nie może usunąć innego administratora ani własnego konta); usuwanie trwale usuwa konto, kody, slajdy i wyniki testów
 - [x] `admin/uzytkownicy.php` – **wysyłka kodu rejestracyjnego** (e-mail + grupa) – administrator
       nie zakłada kont, odbiorca rejestruje się samodzielnie
 - [x] `admin/uzytkownicy.php` – **administrator wysyła tylko kod**, użytkownik zakłada konto samodzielnie

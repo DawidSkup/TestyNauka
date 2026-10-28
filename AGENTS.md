@@ -41,7 +41,8 @@ Na stronie logowania użytkownik **wybiera sposób logowania** (dwie zakładki):
     anulowanie), **dwie listy kont – „Administratorzy” (grupa `firma`) i „Użytkownicy”
     (grupa `materialy`)**, przypisanie grupy (zmiana grupy przenosi konto między listami),
     blokada konta, reset hasła oraz
-    **przycisk „Generuj i wyślij kod”** (kod logowania 2FA na e-mail użytkownika).
+    **przycisk „Generuj i wyślij kod”** (kod logowania 2FA na e-mail użytkownika),
+    **możliwość usuwania kont użytkowników** (administrator nie może usunąć innego administratora ani własnego konta); usuwanie trwale usuwa konto, kody, slajdy i wyniki testów
   `Wyniki` – podgląd wyników wszystkich użytkowników, statystyki rozwiązywalności testów przez bieżącego użytkownika, panel startowy zawiera statystykę „Twoje rozwiązane testy”, a zakładka „Wyniki” w menu nawigacyjnym prowadzi do strony z tabelą wyników wszystkich użytkowników.
   **Administrator nie może zmieniać grupy, statusu, wymogu kodu ani hasła dla innych administratorów** (grupa `firma`). Każdy taki blokada powoduje komunikat i powrót do listy użytkowników.
     `Materiały` – dodawanie, edycja, układanie, publikowanie i podgląd slajdów.
