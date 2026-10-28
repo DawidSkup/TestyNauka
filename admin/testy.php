@@ -649,8 +649,8 @@ layout_header('Testy', 'testy.php');
 
         <?php if ($liczbaPytan === 0): ?>
             <div class="empty-state">
-                <p><strong>Ten test nie ma jeszcze pytań.</strong></p>
-                <p class="muted">Poproś administratora o uzupełnienie testu.</p>
+                <p><strong>Test nie jest skonczony.</strong></p>
+                <p class="muted">Test nie może być rozwiązany, ponieważ nie ma pytań.</p>
             </div>
         <?php else: ?>
             <div class="test-progress">
