@@ -452,16 +452,25 @@ select { cursor: pointer; }
 .preview-bar .btn-ghost { color: #cbd5e1; border-color: #334155; }
 .preview-bar .btn-ghost:hover { background: #1e293b; }
 
-.preview-stage { max-width: 1100px; margin: 0 auto; padding: 30px 20px 10px; }
+.preview-stage { max-width: 1100px; margin: 0 auto; padding: 30px 20px 10px; position: relative; }
 .slide {
-    display: none;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
     background: #111c33;
     border: 1px solid #1e293b;
     border-radius: 16px;
     padding: 34px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
+    z-index: 1;
 }
-.slide.is-current { display: block; }
+.slide.is-current {
+    opacity: 1;
+    visibility: visible;
+    z-index: 2;
+}
 .slide-title { font-size: 1.9rem; margin-bottom: 14px; color: #fff; }
 .slide-text { color: #cbd5e1; font-size: 1.02rem; line-height: 1.7; }
 .slide-quote {
