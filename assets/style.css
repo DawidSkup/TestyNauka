@@ -55,23 +55,23 @@
 
 /* --- Tryb jasny (data-theme="light") --- */
 [data-theme="light"] {
-    --bg: #f8f9fa;
+    --bg: #fafafa;
     --surface: #ffffff;
-    --surface-2: #f1f5f9;
-    --border: #e2e8f0;
-    --text: #0f172a;
-    --muted: #64748b;
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
+    --surface-2: #f5f5f5;
+    --border: #d1d5db;
+    --text: #111827;
+    --muted: #6b7280;
+    --primary: #3b82f6;
+    --primary-dark: #2563eb;
     --primary-soft: #eff6ff;
-    --success: #157346;
+    --success: #10b981;
     --success-soft: #d1e7dd;
-    --warning: #854d0e;
+    --warning: #f59e0b;
     --warning-soft: #fff7ec;
-    --danger: #dc3545;
-    --danger-soft: #f8d7da;
+    --danger: #ef4444;
+    --danger-soft: #fecaca;
     --sidebar: #f8f9fa;
-    --sidebar-soft: #e3f2fd;
+    --sidebar-soft: #e2e8f0;
 }
 
 * { box-sizing: border-box; }
