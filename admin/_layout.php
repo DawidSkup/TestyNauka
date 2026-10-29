@@ -67,7 +67,6 @@ function layout_header(string $title, string $active = ''): void
                     <?= $user['grupa'] === GROUP_FIRMA
                         ? '<span class="badge badge-firma">Grupa firmy</span>'
                         : '<span class="badge badge-materialy">Grupa materiałów</span>' ?>
-                    <button class="btn btn-ghost btn-sm theme-toggle" aria-label="Tryb widoku" id="themeToggle" title="Jasny">
                         ☀️
                     </button>
                 </div>
@@ -95,26 +94,6 @@ function layout_footer(): void
             const html = document.documentElement;
             const btn = document.getElementById('themeToggle');
             if (!btn) return;
-            const themes = ['light', 'dark', 'auto'];
-            const stored = localStorage.getItem('tn-theme');
-            let theme = 'light';
-            if (stored) {
-                theme = stored;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                theme = 'dark';
-            }
-            html.dataset.theme = theme;
-            btn.innerHTML = theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : 'A';
-            btn.title = theme === 'Jasny' ? 'Jasny' : theme === 'Ciemny' ? 'Ciemny' : 'Automatyczny';
-            btn.addEventListener('click', function () {
-                const idx = (themes.indexOf(theme) + 1) % themes.length;
-                theme = themes[idx];
-                html.dataset.theme = theme;
-                localStorage.setItem('tn-theme', theme);
-                btn.innerHTML = theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : 'A';
-                btn.title = theme === 'Jasny' ? 'Jasny' : theme === 'Ciemny' ? 'Ciemny' : 'Automatyczny';
-            });
-        })();
         
         // Obsługa zmiany hasła administratora
         (function () {
