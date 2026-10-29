@@ -329,13 +329,13 @@ $listaUsers = array_values(array_filter(
     static fn (array $u): bool => $u['grupa'] !== GROUP_FIRMA
 ));
 
-/* Zaproszenia – oczekujące na rejestrację (najnowsze na górze). */
+/* Zaproszenia – tylko 2 ostatnie (najnowsze na górze). */
 $stmtZap = $pdo->prepare(
     'SELECT z.*, u.imie AS imie_zapraszajacego
        FROM zaproszenia z
        LEFT JOIN users u ON u.id = z.utworzony_przez
-      ORDER BY (z.uzyty_at IS NOT NULL), z.created_at DESC
-      LIMIT 50'
+      ORDER BY z.created_at DESC, z.id DESC
+      LIMIT 2'
 );
 $stmtZap->execute();
 $zaproszenia = $stmtZap->fetchAll();
