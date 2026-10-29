@@ -174,10 +174,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([':id' => $id]);
         $cel = $stmt->fetch();
 
-        // Administrator nie moze zmieniac grupy innego administratora
-        if ($cel && $user['grupa'] === GROUP_FIRMA && $cel['grupa'] === GROUP_FIRMA
-            && (int) $user['id'] !== (int) $cel['id']) {
-            flash('warning', 'Nie mozna zmieniac grupy innego administratora.');
+        // Administrator nie moze zmieniac grupy zadnemu administratorowi,
+        // takze wlasnemu kontu.
+        if ($cel && $user['grupa'] === GROUP_FIRMA && $cel['grupa'] === GROUP_FIRMA) {
+            flash(
+                'warning',
+                (int) $user['id'] === (int) $cel['id']
+                    ? 'Nie mozna zmieniac grupy wlasnego konta.'
+                    : 'Nie mozna zmieniac grupy innego administratora.'
+            );
             redirect(app_url('admin/uzytkownicy.php'));
         }
 
@@ -378,10 +383,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                     </td>
                     <td class="mono"><?= e($u['email']) ?></td>
                     <td>
-                        <?php
-                        $toJa = (int) $u['id'] === (int) $biezacy['id'];
-                        $mozeZmienicGrupe = $u['grupa'] !== GROUP_FIRMA || $toJa;
-                        ?>
+                        <?php $mozeZmienicGrupe = $u['grupa'] !== GROUP_FIRMA; ?>
                         <?php if ($mozeZmienicGrupe): ?>
                             <form method="post" class="form-inline">
                                 <?= csrf_field() ?>
