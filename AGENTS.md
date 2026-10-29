@@ -91,8 +91,8 @@ formą materiału jest **slajd** składający się z:
 - kolejności na liście materiałów (zmiana kolejności + przełącznik publikacji).
 
 Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na klawiaturze),
-krótki dźwięk przy zmianie slajdu oraz przycisk wyciszenia 🔊 w pasku prezentacji
-(wybór zapamiętywany w przeglądarce).
+delikatny dźwięk przejścia (swish + dzwoniący akcent, inny dla następnego i poprzedniego
+slajdu) oraz przycisk wyciszenia 🔊 w pasku prezentacji (wybór zapamiętywany w przeglądarce).
 Materiały tworzą **łańcuch odblokowywania**: prezentacja 1 jest dostępna od razu,
 prezentacja N (N > 1) odblokowuje się po rozwiązaniu testu N-1, a potwierdzenie
 zapoznania się z prezentacją N (przycisk „Zapoznałem(am) się z prezentacją” na końcu

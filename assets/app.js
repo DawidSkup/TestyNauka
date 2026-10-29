@@ -252,7 +252,12 @@
             soundOn = true;
         }
 
-        function playSlideSound() {
+        /**
+         * Przyjemny dźwięk przejścia: delikatny „swish” (szum z filtrem)
+         * plus krótki, dzwoniący akcent. W zależności od kierunku dźwięk
+         * unosi się (następny slajd) albo opada (poprzedni).
+         */
+        function playSlideSound(direction) {
             if (!soundOn) return;
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             if (!AudioCtx) return;
@@ -264,20 +269,74 @@
                 }
 
                 const now = audioCtx.currentTime;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(620, now);
-                osc.frequency.exponentialRampToValueAtTime(300, now + 0.11);
-                gain.gain.setValueAtTime(0.0001, now);
-                gain.gain.exponentialRampToValueAtTime(0.07, now + 0.012);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now);
-                osc.stop(now + 0.18);
-                osc.addEventListener('ended', function () {
-                    try { osc.disconnect(); gain.disconnect(); } catch (err) { /* ignore */ }
+                const dir = direction < 0 ? -1 : 1;
+
+                /* 1. Swish – krótki szum przestrajany filtrem pasmowym. */
+                const sweep = 0.28;
+                const buffer = audioCtx.createBuffer(1, Math.ceil(audioCtx.sampleRate * sweep), audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.Q.value = 1.4;
+                filter.frequency.setValueAtTime(dir > 0 ? 650 : 2400, now);
+                filter.frequency.exponentialRampToValueAtTime(dir > 0 ? 2600 : 600, now + 0.24);
+
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.setValueAtTime(0.0001, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.05, now + 0.035);
+                noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.27);
+
+                let noiseOut = noiseGain;
+                let panner = null;
+                if (audioCtx.createStereoPanner) {
+                    panner = audioCtx.createStereoPanner();
+                    panner.pan.setValueAtTime(-0.35 * dir, now);
+                    panner.pan.linearRampToValueAtTime(0.35 * dir, now + 0.24);
+                    noiseGain.connect(panner);
+                    noiseOut = panner;
+                }
+
+                noise.connect(filter);
+                filter.connect(noiseGain);
+                noiseOut.connect(audioCtx.destination);
+                noise.start(now);
+                noise.stop(now + sweep);
+                noise.addEventListener('ended', function () {
+                    try {
+                        noise.disconnect();
+                        filter.disconnect();
+                        noiseGain.disconnect();
+                        if (panner) panner.disconnect();
+                    } catch (err) { /* ignore */ }
+                });
+
+                /* 2. Dzwoniący akcent – dwie harmoniczne, cichy i szybko gasnący. */
+                const base = dir > 0 ? 880 : 698.46;
+                [1, 1.5].forEach(function (mult, n) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    const start = now + 0.025;
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(base * mult, start);
+                    gain.gain.setValueAtTime(0.0001, start);
+                    gain.gain.exponentialRampToValueAtTime(n === 0 ? 0.045 : 0.02, start + 0.015);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, start + (n === 0 ? 0.3 : 0.2));
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(start);
+                    osc.stop(start + 0.34);
+                    osc.addEventListener('ended', function () {
+                        try { osc.disconnect(); gain.disconnect(); } catch (err) { /* ignore */ }
+                    });
                 });
             } catch (err) {
                 /* dźwięk jest opcjonalny – brak wsparcia nie może przerwać prezentacji */
@@ -299,7 +358,7 @@
                     window.localStorage.setItem('tn-slide-sound', soundOn ? '1' : '0');
                 } catch (err) { /* ignore */ }
                 updateSoundButton();
-                playSlideSound();
+                playSlideSound(1);
             });
         }
         updateSoundButton();
@@ -319,7 +378,7 @@
                 nextBtn.style.display = 'inline-flex';
                 nextBtn.disabled = index >= slides.length - 1;
             }
-            if (previous !== index) playSlideSound();
+            if (previous !== index) playSlideSound(index > previous ? 1 : -1);
         }
 
         if (prevBtn) {
