@@ -70,6 +70,10 @@ function layout_header(string $title, string $active = ''): void
                     <button class="btn btn-ghost btn-sm theme-toggle" aria-label="Tryb widoku" id="themeToggle" title="Jasny">
                         ☀️
                     </button>
+                    <button class="btn btn-ghost btn-sm" id="changePasswordBtn" data-csrf="<?= csrf_token() ?>"
+                            data-action="admin/uzytkownicy.php?akcja=zmien_haslo">
+                        🔐 Zmień hasło
+                    </button>
                 </div>
             </header>
 
@@ -113,6 +117,41 @@ function layout_footer(): void
                 localStorage.setItem('tn-theme', theme);
                 btn.innerHTML = theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : 'A';
                 btn.title = theme === 'Jasny' ? 'Jasny' : theme === 'Ciemny' ? 'Ciemny' : 'Automatyczny';
+            });
+        })();
+        
+        // Obsługa zmiany hasła administratora
+        (function () {
+            const changePasswordBtn = document.getElementById('changePasswordBtn');
+            if (!changePasswordBtn) return;
+            
+            changePasswordBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const newPassword = prompt('Wpisz nowe hasło (minimum 8 znaków):');
+                if (newPassword === null || newPassword.trim().length === 0) return;
+                
+                if (newPassword.length < 8) {
+                    alert('Hasło musi mieć co najmniej 8 znaków.');
+                    return;
+                }
+                
+                // Pobierz token CSRF z strony
+                const csrfInput = document.querySelector('input[name="csrf"]');
+                if (!csrfInput) return;
+                
+                // Utwórz formularz i wyślij zapytanie
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '<?= e(app_url('admin/uzytkownicy.php')) ?>';
+                form.innerHTML = `
+                    <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="akcja" value="zmien_haslo">
+                    <input type="hidden" name="user_id" value="<?= (int) $user['id'] ?>">
+                    <input type="hidden" name="haslo" value="<?= newPassword ?>">
+                ];
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
             });
         })();
     </script>

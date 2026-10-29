@@ -302,6 +302,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         redirect(app_url('admin/uzytkownicy.php'));
     }
+
+    /* --- Zmiana własnego hasła ----------------------------------------------- */
+    if ($akcja === 'zmien_haslo') {
+        $haslo = (string) ($_POST['haslo'] ?? '');
+
+        if (strlen($haslo) < 8) {
+            flash('warning', 'Nowe hasło musi mieć co najmniej 8 znaków.');
+        } else {
+            $pdo->prepare('UPDATE users SET haslo_hash = :h, updated_at = :n WHERE id = :id')
+                ->execute([':h' => password_hash($haslo, PASSWORD_DEFAULT), ':n' => date('Y-m-d H:i:s'), ':id' => (int) $user['id']]);
+            log_action('zmien_haslo', 'user_id=' . $user['id'], (int) $user['id']);
+            flash('success', 'Hasło zostało zmienione.');
+        }
+        redirect(app_url('admin/uzytkownicy.php'));
+    }
 }
 
 /* ------------------------------------------------------------------ */
