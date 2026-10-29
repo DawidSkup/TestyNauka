@@ -170,17 +170,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id    = (int) ($_POST['user_id'] ?? 0);
         $grupa = (string) ($_POST['grupa'] ?? '');
 
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $cel = $stmt->fetch();
+
         // Administrator nie moze zmieniac grupy innego administratora
-        if ($id > 0 && $user['grupa'] === GROUP_FIRMA && $cel['grupa'] === GROUP_FIRMA && $user['id'] !== $cel['id']) {
+        if ($cel && $user['grupa'] === GROUP_FIRMA && $cel['grupa'] === GROUP_FIRMA
+            && (int) $user['id'] !== (int) $cel['id']) {
             flash('warning', 'Nie mozna zmieniac grupy innego administratora.');
             redirect(app_url('admin/uzytkownicy.php'));
         }
 
-        if (isset(GROUPS[$grupa])) {
+        if ($cel && isset(GROUPS[$grupa])) {
             $pdo->prepare('UPDATE users SET grupa = :g, updated_at = :n WHERE id = :id')
                 ->execute([':g' => $grupa, ':n' => date('Y-m-d H:i:s'), ':id' => $id]);
             log_action('zmieniono_grupe', 'user_id=' . $id . ' -> ' . $grupa, (int) $user['id']);
             flash('success', 'Grupa użytkownika została zmieniona.');
+        } else {
+            flash('error', 'Nie znaleziono użytkownika lub wybrano nieprawidłową grupę.');
         }
 
         redirect(app_url('admin/uzytkownicy.php'));
@@ -336,6 +343,13 @@ $zaproszenia = $stmtZap->fetchAll();
  */
 function render_tabela_kont(array $lista, array $biezacy): void
 {
+    $pokazKody = false;
+    foreach ($lista as $konto) {
+        if ($konto['grupa'] !== GROUP_FIRMA) {
+            $pokazKody = true;
+            break;
+        }
+    }
     ?>
     <div class="table-wrap">
         <table class="table">
@@ -345,7 +359,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                 <th>E-mail</th>
                 <th>Grupa</th>
                 <th>Status</th>
-                <?php if ((int) $biezacy['grupa'] === GROUP_FIRMA && $u['grupa'] !== GROUP_FIRMA): ?>
+                <?php if ($pokazKody): ?>
                 <th>Aktywny kod</th>
                 <?php endif; ?>
                 <th>Wymóg kodu</th>
@@ -364,19 +378,27 @@ function render_tabela_kont(array $lista, array $biezacy): void
                     </td>
                     <td class="mono"><?= e($u['email']) ?></td>
                     <td>
-                        <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="grupa">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <select name="grupa" class="select-sm" onchange="this.form.submit()">
-                                <?php foreach (GROUPS as $key => $label): ?>
-                                    <option value="<?= e($key) ?>"<?= $u['grupa'] === $key ? ' selected' : '' ?>>
-                                        <?= e($label) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <noscript><button type="submit" class="btn btn-sm btn-ghost">Zapisz</button></noscript>
-                        </form>
+                        <?php
+                        $toJa = (int) $u['id'] === (int) $biezacy['id'];
+                        $mozeZmienicGrupe = $u['grupa'] !== GROUP_FIRMA || $toJa;
+                        ?>
+                        <?php if ($mozeZmienicGrupe): ?>
+                            <form method="post" class="form-inline">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="akcja" value="grupa">
+                                <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                                <select name="grupa" class="select-sm" onchange="this.form.submit()">
+                                    <?php foreach (GROUPS as $key => $label): ?>
+                                        <option value="<?= e($key) ?>"<?= $u['grupa'] === $key ? ' selected' : '' ?>>
+                                            <?= e($label) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <noscript><button type="submit" class="btn btn-sm btn-ghost">Zapisz</button></noscript>
+                            </form>
+                        <?php else: ?>
+                            <span class="badge"><?= e(GROUPS[$u['grupa']] ?? $u['grupa']) ?></span>
+                        <?php endif; ?>
                     </td>
                     <td>
                         <?php if ((int) $u['aktywny'] === 1): ?>
@@ -388,7 +410,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                             <span class="badge badge-warn">nieaktywowane</span>
                         <?php endif; ?>
                     </td>
-                    <?php if ((int) $biezacy['grupa'] === GROUP_FIRMA && $u['grupa'] !== GROUP_FIRMA): ?>
+                    <?php if ($pokazKody): ?>
                     <td>
                         <?php if (!empty($u['aktywny_kod'])): ?>
                             <span class="code-inline"><?= e($u['aktywny_kod']) ?></span>
