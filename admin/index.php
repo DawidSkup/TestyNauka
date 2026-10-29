@@ -216,7 +216,6 @@ layout_header('Panel startowy', 'index.php');
             <a class="btn btn-ghost" href="<?= e(app_url('admin/slajd_form.php')) ?>">+ Dodaj slajd</a>
             <a class="btn btn-ghost" href="<?= e(app_url('admin/testy.php')) ?>">Testy</a>
             <a class="btn btn-ghost" href="<?= e(app_url('admin/uzytkownicy.php')) ?>">Użytkownicy</a>
-            <a class="btn btn-ghost" href="<?= e(app_url('admin/backup.php')) ?>">Kopia zapasowa bazy</a>
         </div>
 
         <h3 class="card-subtitle">Ostatnie zdarzenia</h3>
