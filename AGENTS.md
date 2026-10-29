@@ -92,10 +92,11 @@ formą materiału jest **slajd** składający się z:
 
 Dodatkowo: podgląd slajdów w trybie prezentacji (sterowanie strzałkami na klawiaturze).
 Materiały tworzą **łańcuch odblokowywania**: prezentacja 1 jest dostępna od razu,
-prezentacja N (N > 1) odblokowuje się po rozwiązaniu testu N-1, a obejrzenie prezentacji N
-odblokowuje test N. Otwarcie prezentacji przez użytkownika grupy `materialy` (także
-prezentacji bez slajdów) jest zapisywane w bazie; rozwiązanie testu wynika z zapisanego
-wyniku w `wyniki_testow`.
+prezentacja N (N > 1) odblokowuje się po rozwiązaniu testu N-1, a potwierdzenie
+zapoznania się z prezentacją N (przycisk „Zapoznałem(am) się z prezentacją” na końcu
+prezentacji) odblokowuje test N. Potwierdzenie przez użytkownika grupy `materialy`
+(także na stronie prezentacji bez slajdów) jest zapisywane w bazie; rozwiązanie testu
+wynika z zapisanego wyniku w `wyniki_testow`.
 Zarządzanie materiałami (`admin/materialy.php`, `admin/slajd_form.php`) należy do grupy `firma`.
 
 ## 3a. Testy wiedzy
@@ -132,21 +133,29 @@ widzieć wynik.
 - widoczne są wyłącznie testy o statusie `opublikowany`,
 - **łańcuch odblokowywania** dla grupy `materialy`: prezentacja 1 jest dostępna od razu,
   **prezentacja N (N > 1) jest zablokowana do rozwiązania testu N-1**, a **test N jest
-  zablokowany do obejrzenia prezentacji N**,
+  zablokowany do potwierdzenia zapoznania się z prezentacją N**,
 - zablokowana karta prezentacji pokazuje komunikat i przycisk „Rozwiąż Test N-1”,
   zablokowana karta testu – komunikat i przycisk „Odtwórz Prezentację N”. Bezpośrednie
   wejście na `admin/podglad.php?id=…` lub `?akcja=rozwiaz` jest odrzucane (komunikat
   + powrót do listy), a wynik nie zostaje zapisany. Widok `podglad.php` bez `id`
   (wszystkie slajdy) jest dostępny tylko dla grupy `firma` – użytkownik odtwarza
   prezentacje z listy,
-- obejrzenie prezentacji (otwarcie jej podglądu, także gdy nie ma jeszcze slajdów)
-  zapisuje się w tabeli `prezentacje_obejrzane`; rozwiązanie testu wynika z wiersza
-  w `wyniki_testow`. Oba stany są trwałe,
+- potwierdzenie zapoznania się z prezentacją (przycisk na ostatnim ekranie prezentacji,
+  także na stronie prezentacji bez slajdów) zapisuje się w tabeli
+  `prezentacje_obejrzane`; rozwiązanie testu wynika z wiersza w `wyniki_testow`.
+  Oba stany są trwałe. Samo otwarcie prezentacji **nie odblokowuje** testu,
+- każda prezentacja kończy się **dodatkowym slajdem potwierdzenia** (numerowanym jak
+  pozostałe), również w podglądzie administratora – tam przycisk jest nieaktywny i
+  opisany jako podgląd. Po potwierdzeniu slajd pokazuje stan „✓” z nieaktywnym
+  przyciskiem i odnośnikiem do testów. Przyciski **„Poprzedni” / „Następny”** są
+  widoczne przez cały czas (nieaktywne na pierwszym i ostatnim slajdzie), także w trybie
+  pełnoekranowym,
 - brak pasującej pozycji (brak prezentacji o danym numerze, test w szkicu) **nie blokuje**
   – inaczej powstałby deadlock. Prezentacja bez slajdów **blokuje** test (materiał
-  istnieje, tylko nie jest jeszcze uzupełniony), ale jej otwarcie liczy się jako
-  obejrzenie, więc blokada nigdy nie jest trwała. Test bez pytań również **blokuje**
-  kolejną prezentację – administrator musi dodać pytania, aby użytkownik mógł przejść dalej.
+  istnieje, tylko nie jest jeszcze uzupełniony), ale potwierdzenie zapoznania się na jej
+  stronie liczy się jako obejrzenie, więc blokada nigdy nie jest trwała. Test bez pytań
+  również **blokuje** kolejną prezentację – administrator musi dodać pytania, aby
+  użytkownik mógł przejść dalej.
 - jedno pytanie z jedną poprawną odpowiedzią = jedna wybrana odpowiedź; przy kilku poprawnych
   odpowiedziach użytkownik zaznacza wszystkie pasujące (pola wyboru). Formularz pokazuje numer
   pytania i licznik „x z y”, a pasek postępu aktualizuje się na żywo,
@@ -332,9 +341,10 @@ TestyNauka/
 - [x] Grupa `materialy` widzi wyłącznie opublikowane testy, rozwiązuje je (przy jednej poprawnej
       odpowiedzi – jedna odpowiedź, przy kilku – wszystkie poprawne) i otrzymuje wynik zapisany
       w `wyniki_testow`.
-- [x] Test o numerze N jest zablokowany dla grupy `materialy` do chwili obejrzenia
-      opublikowanej prezentacji o numerze N; blokada działa też przy bezpośrednim wejściu
-      w adres `?akcja=rozwiaz` (wynik nie zostaje zapisany).
+- [x] Test o numerze N jest zablokowany dla grupy `materialy` do chwili potwierdzenia
+      zapoznania się z opublikowaną prezentacją o numerze N (przycisk na końcu prezentacji);
+      blokada działa też przy bezpośrednim wejściu w adres `?akcja=rozwiaz` (wynik nie
+      zostaje zapisany). Samo otwarcie prezentacji nie odblokowuje testu.
 - [x] Prezentacja o numerze N (N > 1) jest zablokowana do chwili rozwiązania testu
       o numerze N-1; prezentacja 1 jest dostępna od razu. Dotyczy to także testu, który
       nie ma jeszcze pytań. Blokada działa też przy bezpośrednim wejściu w

@@ -440,7 +440,8 @@ layout_header($view === 'edycja' ? 'Edycja prezentacji' : 'Prezentacje', 'prezen
             <p class="muted">
                 Prezentacje grupują slajdy w gotowe pokazy. Odtworzysz je w trybie pełnoekranowym.
                 Prezentacja 1 jest dostępna od razu, każda kolejna (N) odblokowuje się po rozwiązaniu
-                testu o numerze N-1, a obejrzenie prezentacji N odblokowuje test N.
+                testu o numerze N-1, a potwierdzenie zapoznania się z prezentacją N (przycisk na jej
+                końcu) odblokowuje test N.
             </p>
         </div>
         <div class="page-toolbar-actions">

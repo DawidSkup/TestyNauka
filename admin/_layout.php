@@ -25,7 +25,7 @@ function layout_header(string $title, string $active = ''): void
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?= e($title) ?> – <?= e(APP_NAME) ?></title>
-        <link rel="stylesheet" href="<?= e(app_url('assets/style.css')) ?>">
+        <link rel="stylesheet" href="<?= e(app_asset_url('assets/style.css')) ?>">
     </head>
     <body class="page-panel">
     <div class="layout">
@@ -84,7 +84,7 @@ function layout_footer(): void
     ?>
         </main>
     </div>
-    <script src="<?= e(app_url('assets/app.js')) ?>"></script>
+    <script src="<?= e(app_asset_url('assets/app.js')) ?>"></script>
     </body>
     </html>
     <?php

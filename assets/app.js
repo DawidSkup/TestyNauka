@@ -234,7 +234,7 @@
     /* ---------------------------------------------------------------- */
     const stage = document.getElementById('previewStage');
     if (stage) {
-        const slides = Array.prototype.slice.call(stage.querySelectorAll('.slide:not(.slide-confirm)'));
+        const slides = Array.prototype.slice.call(stage.querySelectorAll('.slide'));
         const counter = document.getElementById('previewCounter');
         const prevBtn = document.getElementById('previewPrev');
         const nextBtn = document.getElementById('previewNext');
@@ -249,10 +249,12 @@
             slides.forEach(function (s, n) { s.classList.toggle('is-current', n === index); });
             if (counter) counter.textContent = (index + 1) + ' / ' + slides.length;
             if (prevBtn) {
-                prevBtn.style.display = (index <= 0) ? 'none' : 'inline-flex';
+                prevBtn.style.display = 'inline-flex';
+                prevBtn.disabled = index <= 0;
             }
             if (nextBtn) {
-                nextBtn.style.display = (index >= slides.length - 1) ? 'none' : 'inline-flex';
+                nextBtn.style.display = 'inline-flex';
+                nextBtn.disabled = index >= slides.length - 1;
             }
         }
 
@@ -368,8 +370,8 @@
         index = 0;
         slides.forEach(function (s, n) { s.classList.toggle('is-current', n === 0); });
         if (counter) counter.textContent = '1 / ' + slides.length;
-        if (prevBtn) prevBtn.style.display = 'none';
-        if (nextBtn) nextBtn.style.display = slides.length > 1 ? 'inline-flex' : 'none';
+        if (prevBtn) prevBtn.style.display = 'inline-flex';
+        if (nextBtn) nextBtn.style.display = 'inline-flex';
         show(0);
     }
 })();

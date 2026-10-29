@@ -148,7 +148,7 @@ $uklady = [
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($tytul) ?> – <?= e(APP_NAME) ?></title>
-    <link rel="stylesheet" href="<?= e(app_url('assets/style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(app_asset_url('assets/style.css')) ?>">
 </head>
 <body class="page-preview">
 <header class="preview-bar">
@@ -173,7 +173,19 @@ $uklady = [
             <?php if ($isFirma): ?>
                 <a class="btn btn-primary" href="<?= e(app_url('admin/prezentacje.php?akcja=edytuj&id=' . $prezentacjaId)) ?>">Dodaj slajdy</a>
             <?php else: ?>
-                <a class="btn btn-primary" href="<?= e(app_url('admin/prezentacje.php')) ?>">Wróć do prezentacji</a>
+                <?php if (!$potwierdzona): ?>
+                    <p class="muted small">Materiał nie ma jeszcze slajdów. Potwierdź zapoznanie się z prezentacją, aby odblokować test.</p>
+                    <form method="post" action="<?= e(app_url('admin/podglad.php?id=' . $prezentacjaId)) ?>" class="slide-confirm-form">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="akcja" value="potwierdz_prezentacje">
+                        <button class="btn btn-primary" type="submit">Zapoznałem(am) się z prezentacją</button>
+                    </form>
+                <?php else: ?>
+                    <p class="muted small">Zapoznanie z tą prezentacją zostało już potwierdzone. Przypisany test jest odblokowany.</p>
+                    <button class="btn btn-primary" type="button" disabled>Zapoznałem(am) się z prezentacją ✓</button>
+                    <a class="btn btn-ghost" href="<?= e(app_url('admin/testy.php')) ?>">Przejdź do testów →</a>
+                <?php endif; ?>
+                <a class="btn btn-ghost" href="<?= e(app_url('admin/prezentacje.php')) ?>">Wróć do prezentacji</a>
             <?php endif; ?>
         <?php else: ?>
             <p>Brak slajdów do wyświetlenia.</p>
@@ -183,7 +195,7 @@ $uklady = [
         <?php endif; ?>
     </div>
 <?php else: ?>
-    <div class="preview-stage" id="previewStage" data-count="<?= e((string) count($slajdy) + (!$isFirma && $prezentacjaId > 0 && $user !== null && !$potwierdzona ? 1 : 0)) ?>">
+    <div class="preview-stage" id="previewStage" data-count="<?= e((string) count($slajdy) + ($prezentacjaId > 0 && $user !== null ? 1 : 0)) ?>">
         <?php foreach ($slajdy as $i => $s): ?>
             <article class="slide slide-<?= e($s['uklad']) ?><?= $i === 0 ? ' is-current' : '' ?>" data-index="<?= e((string) $i) ?>">
                 <?php if (!empty($s['obraz'])): ?>
@@ -213,16 +225,29 @@ $uklady = [
                 </div>
             </article>
         <?php endforeach; ?>
-        <?php if (!$isFirma && $prezentacjaId > 0 && $user !== null && !$potwierdzona && $slajdy): ?>
+        <?php if ($prezentacjaId > 0 && $user !== null && $slajdy): ?>
             <article class="slide slide-confirm" data-index="<?= e((string) count($slajdy)) ?>">
                 <div class="slide-body">
                     <h1 class="slide-title">Potwierdzenie</h1>
-                    <p class="slide-text">Aby odblokować przypisany do tej prezentacji test, potwierdź, że zapoznałeś(aś) się z całością prezentacji.</p>
-                    <form method="post" action="<?= e(app_url('admin/podglad.php?id=' . $prezentacjaId)) ?>" class="slide-confirm-form">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="akcja" value="potwierdz_prezentacje">
-                        <button class="btn btn-primary" type="submit">Potwierdzam, że zapoznałem(am) się z prezentacją</button>
-                    </form>
+                    <?php if ($isFirma): ?>
+                        <p class="slide-text">Podgląd administratora. Przycisk potwierdzenia zapoznania się z prezentacją widzą użytkownicy grupy materiałów – kliknięcie odblokowuje przypisany test.</p>
+                        <div class="slide-confirm-form">
+                            <button class="btn btn-primary" type="button" disabled>Zapoznałem(am) się z prezentacją</button>
+                        </div>
+                    <?php elseif (!$potwierdzona): ?>
+                        <p class="slide-text">Aby odblokować przypisany do tej prezentacji test, potwierdź, że zapoznałeś(aś) się z całością prezentacji.</p>
+                        <form method="post" action="<?= e(app_url('admin/podglad.php?id=' . $prezentacjaId)) ?>" class="slide-confirm-form">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="akcja" value="potwierdz_prezentacje">
+                            <button class="btn btn-primary" type="submit">Zapoznałem(am) się z prezentacją</button>
+                        </form>
+                    <?php else: ?>
+                        <p class="slide-text">Zapoznanie z tą prezentacją zostało już potwierdzone. Przypisany test jest odblokowany.</p>
+                        <div class="slide-confirm-form">
+                            <button class="btn btn-primary" type="button" disabled>Zapoznałem(am) się z prezentacją ✓</button>
+                            <a class="btn btn-ghost" href="<?= e(app_url('admin/testy.php')) ?>">Przejdź do testów →</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </article>
         <?php endif; ?>
@@ -236,6 +261,6 @@ $uklady = [
 
 
 
-<script src="<?= e(app_url('assets/app.js')) ?>"></script>
+<script src="<?= e(app_asset_url('assets/app.js')) ?>"></script>
 </body>
 </html>

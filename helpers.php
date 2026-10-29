@@ -155,6 +155,22 @@ function app_url(string $path = ''): string
 }
 
 /**
+ * Adres pliku statycznego z parametrem wersji (cache-busting).
+ * Dzięki temu przeglądarka pobiera nowy CSS/JS po każdej zmianie pliku.
+ */
+function app_asset_url(string $path): string
+{
+    $url = app_url($path);
+    $plik = __DIR__ . '/' . ltrim($path, '/');
+
+    if (is_file($plik)) {
+        $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . filemtime($plik);
+    }
+
+    return $url;
+}
+
+/**
  * Adres URL z hostem – używany w linkach w e-mailach (względny URL
  * nie jest klikalny w klientach poczty). Gdy brak hosta (CLI),
  * zwraca adres względny.

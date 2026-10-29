@@ -445,7 +445,7 @@ select { cursor: pointer; }
 /* ---------------------------------------------------------------- */
 /* Podgląd slajdów                                                   */
 /* ---------------------------------------------------------------- */
-.page-preview { background: #0b1220; color: #e2e8f0; }
+.page-preview { background: #0b1220; color: #e2e8f0; min-height: 100vh; }
 .preview-bar {
     display: flex; align-items: center; gap: 14px;
     padding: 12px 20px; border-bottom: 1px solid #1e293b;
@@ -457,10 +457,12 @@ select { cursor: pointer; }
 .preview-bar .btn-ghost { color: #cbd5e1; border-color: #334155; }
 .preview-bar .btn-ghost:hover { background: #1e293b; }
 
-.preview-stage { max-width: 1100px; margin: 0 auto; padding: 30px 20px 10px; position: relative; }
+.preview-stage {
+    max-width: 1100px; margin: 0 auto; padding: 30px 20px 100px; position: relative;
+    display: grid; align-items: start;
+}
 .slide {
-    position: absolute;
-    top: 0; left: 0; right: 0;
+    grid-area: 1 / 1;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.5s ease, visibility 0.5s ease;
@@ -489,8 +491,14 @@ select { cursor: pointer; }
 .slide-obraz-tekst .slide-media { order: 2; }
 .slide-confirm .slide-body { text-align: center; }
 .slide-confirm .slide-text { max-width: 520px; margin: 0 auto 20px; }
-.slide-confirm-form { display: flex; justify-content: center; }
-.preview-nav { display: flex; justify-content: center; gap: 12px; padding: 20px; }
+.slide-confirm-form { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.preview-nav {
+    display: flex; justify-content: center; gap: 12px;
+    padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 9;
+    background: rgba(11, 18, 32, .96); border-top: 1px solid #1e293b;
+    backdrop-filter: blur(6px);
+}
 .preview-nav .btn-ghost { color: #cbd5e1; border-color: #334155; }
 .preview-nav .btn-ghost:hover { background: #1e293b; }
 .preview-empty { text-align: center; padding: 80px 20px; color: #cbd5e1; }
@@ -527,6 +535,7 @@ select { cursor: pointer; }
     position: fixed !important;
     bottom: 20px !important;
     left: 50% !important;
+    right: auto !important;
     transform: translateX(-50%) !important;
     z-index: 1000 !important;
     background: rgba(15, 23, 42, .95) !important;
@@ -603,7 +612,7 @@ select { cursor: pointer; }
 .page-preview:-webkit-full-screen .preview-stage,
 .page-preview:-ms-fullscreen .preview-stage {
     max-width: none !important;
-    padding: 40px 20px !important;
+    padding: 40px 20px 110px !important;
 }
 .page-preview:fullscreen .slide,
 .page-preview:-webkit-full-screen .slide,

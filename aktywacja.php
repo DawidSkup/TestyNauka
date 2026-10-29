@@ -51,7 +51,7 @@ $flashes = flash_take();
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Aktywacja konta – <?= e(APP_NAME) ?></title>
-    <link rel="stylesheet" href="<?= e(app_url('assets/style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(app_asset_url('assets/style.css')) ?>">
 </head>
 <body class="page-login">
 <div class="login-box">

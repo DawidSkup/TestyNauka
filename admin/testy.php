@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'rozwiaz') {
-        // Test odblokowuje obejrzenie prezentacji o tym samym numerze.
+        // Test odblokowuje potwierdzenie zapoznania się z prezentacją o tym samym numerze.
         if (!$isFirma) {
             $stmt = $pdo->prepare('SELECT * FROM testy WHERE id = :id AND status = "opublikowany"');
             $stmt->execute([':id' => $testId]);
@@ -188,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             if ($blokada !== null) {
-                flash('warning', 'Zanim rozwiążesz ten test, obejrzyj prezentację „' . $blokada['tytul'] . '”.');
+                flash('warning', 'Zanim rozwiążesz ten test, potwierdź zapoznanie się z prezentacją „' . $blokada['tytul'] . '”.');
                 redirect(app_url('admin/testy.php'));
             }
         }
@@ -937,7 +937,8 @@ layout_header('Testy', 'testy.php');
         <div class="page-toolbar">
             <p class="muted">
                 Wybierz test i sprawdź swoją wiedzę. Widoczne są tylko testy opublikowane przez administratora.
-                Test N odblokujesz po obejrzeniu prezentacji N, a prezentacja N – po rozwiązaniu testu N-1.
+                Test N odblokujesz po potwierdzeniu zapoznania się z prezentacją N,
+                a prezentacja N – po rozwiązaniu testu N-1.
             </p>
             <div class="page-toolbar-actions">
                 <span class="badge"><?= count($testy) ?> <?= count($testy) === 1 ? 'test' : 'testów' ?></span>
@@ -969,7 +970,7 @@ layout_header('Testy', 'testy.php');
                         <?php endif; ?>
                         <?php if ($blokada !== null): ?>
                             <p class="lock-note">
-                                🔒 Najpierw obejrzyj prezentację <strong><?= e($blokada['tytul']) ?></strong>,
+                                🔒 Najpierw potwierdź zapoznanie się z prezentacją <strong><?= e($blokada['tytul']) ?></strong>,
                                 aby odblokować ten test.
                             </p>
                             <div class="test-card-meta">

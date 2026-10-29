@@ -60,8 +60,9 @@ i kodami) oraz **grupę materiałów** (dodawanie i edycja slajdów).
   wyboru zaznacza wszystkie pasujące odpowiedzi. Wynik zapisuje się od razu po zakończeniu.
 - **Odblokowywanie krok po kroku** – prezentacja 1 jest dostępna od razu. Prezentacja N,
   a potem test N odblokowują się naprzemiennie: rozwiązanie testu N-1 odblokowuje
-  prezentację N, a obejrzenie prezentacji N odblokowuje test N. Zablokowane karty pokazują
-  odpowiedni komunikat i przycisk prowadzący do poprzedniego kroku.
+  prezentację N, a przycisk **„Zapoznałem(am) się z prezentacją”** na końcu prezentacji N
+  odblokowuje test N. Samo otwarcie prezentacji nie odblokowuje testu. Zablokowane karty
+  pokazują odpowiedni komunikat i przycisk prowadzący do poprzedniego kroku.
 
 ## Jak dodać nowego użytkownika
 
