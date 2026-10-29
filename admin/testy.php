@@ -768,7 +768,7 @@ layout_header('Testy', 'testy.php');
             <p class="result-message"><?= e($komunikat) ?></p>
 
             <div class="result-actions">
-                <a class="btn btn-primary" href="<?= e(app_url('admin/testy.php?akcja=rozwiaz&test_id=' . (int) $test['id'])) ?>">Spróbuj ponownie</a>
+                <a class="btn btn-primary" href="<?= e(app_url('admin/prezentacje.php')) ?>">Przejdź do prezentacji</a>
                 <a class="btn btn-ghost" href="<?= e(app_url('admin/testy.php')) ?>">Wróć do listy testów</a>
             </div>
 
