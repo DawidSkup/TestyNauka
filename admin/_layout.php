@@ -67,6 +67,7 @@ function layout_header(string $title, string $active = ''): void
                     <?= $user['grupa'] === GROUP_FIRMA
                         ? '<span class="badge badge-firma">Grupa firmy</span>'
                         : '<span class="badge badge-materialy">Grupa materiałów</span>' ?>
+                    <button class="btn btn-ghost btn-sm theme-toggle" aria-label="Tryb widoku" id="themeToggle" title="Jasny">
                         ☀️
                     </button>
                 </div>
@@ -88,13 +89,54 @@ function layout_footer(): void
     </div>
     <script src="<?= e(app_asset_url('assets/app.js')) ?>"></script>
     <script>
-        // Tryb ciemny / jasny / automatyczny
+        // Theme toggle - class-based approach for reliable theming
         (function () {
             'use strict';
             const html = document.documentElement;
             const btn = document.getElementById('themeToggle');
             if (!btn) return;
-        
+
+            const themes = ['light', 'dark', 'auto'];
+            const stored = localStorage.getItem('tn-theme');
+            let theme = 'light';
+
+            if (stored) {
+                theme = stored;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                theme = 'dark';
+            }
+
+            // Apply theme using classes
+            html.classList.remove('theme-light', 'theme-dark', 'theme-auto');
+            if (theme === 'dark') html.classList.add('theme-dark');
+            else if (theme === 'light') html.classList.add('theme-light');
+            else if (theme === 'auto') html.classList.add('theme-auto');
+
+            // Update button appearance
+            btn.innerHTML = theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : 'A';
+            btn.title = theme === 'Jasny' ? 'Jasny' : theme === 'Ciemny' ? 'Ciemny' : 'Automatyczny';
+
+            btn.addEventListener('click', function () {
+                const currentIdx = themes.indexOf(theme);
+                const nextIdx = (currentIdx + 1) % themes.length;
+                theme = themes[nextIdx];
+                html.classList.remove('theme-light', 'theme-dark', 'theme-auto');
+                if (theme === 'dark') html.classList.add('theme-dark');
+                else if (theme === 'light') html.classList.add('theme-light');
+                else if (theme === 'auto') html.classList.add('theme-auto');
+                localStorage.setItem('tn-theme', theme);
+                btn.innerHTML = theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : 'A';
+                btn.title = theme === 'Jasny' ? 'Jasny' : theme === 'Ciemny' ? 'Ciemny' : 'Automatyczny';
+            });
+
+            // Initialize button state
+            function updateButtonTheme(t) {
+                btn.innerHTML = t === 'light' ? '☀️' : t === 'dark' ? '🌙' : 'A';
+                btn.title = t === 'Jasny' ? 'Jasny' : t === 'Ciemny' ? 'Ciemny' : 'Automatyczny';
+            }
+            updateButtonTheme(theme);
+        })();
+
         // Obsługa zmiany hasła administratora
         (function () {
     <?php
