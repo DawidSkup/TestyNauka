@@ -62,6 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($akcja, ['moj_kod', 'kod_e
 /* --- Zmiana własnego hasła ----------------------------------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $akcja === 'zmien_haslo_self') {
     csrf_require($_POST['csrf'] ?? null);
+    
+    // Tylko administratorzy (grupa firma) mogą zmieniać hasło
+    if ($user['grupa'] !== GROUP_FIRMA) {
+        flash('warning', 'Tylko administratorzy mogą zmieniać hasło.');
+        redirect(app_url('admin/index.php'));
+    }
+    
     $haslo = (string) ($_POST['haslo'] ?? '');
 
     if (strlen($haslo) < 8) {
@@ -233,7 +240,9 @@ layout_header('Panel startowy', 'index.php');
             <a class="btn btn-ghost" href="<?= e(app_url('admin/slajd_form.php')) ?>">+ Dodaj slajd</a>
             <a class="btn btn-ghost" href="<?= e(app_url('admin/testy.php')) ?>">Testy</a>
             <a class="btn btn-ghost" href="<?= e(app_url('admin/uzytkownicy.php')) ?>">Użytkownicy</a>
-            <a class="btn btn-ghost" href="javascript:void(0)" onclick="zmienHaslo()">Zmień moje hasło</a>
+            <?php if ($user['grupa'] === GROUP_FIRMA): ?>
+                <a class="btn btn-ghost" href="javascript:void(0)" onclick="zmienHaslo()">Zmień moje hasło</a>
+            <?php endif; ?>
         </div>
 
         <h3 class="card-subtitle">Ostatnie zdarzenia</h3>
