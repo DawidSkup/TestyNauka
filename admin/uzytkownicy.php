@@ -465,13 +465,7 @@ function render_tabela_kont(array $lista, array $biezacy): void
                                 Usuń
                             </button>
                         </form>
-                        <form method="post" class="form-inline" style="margin-left: 12px;">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="zmien_haslo">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <input type="hidden" name="haslo" value="">
-                        </form>
-                        <button type="button" class="btn btn-sm btn-warning" onclick="return zmieniaHaslo(this, '<?= $u['id'] ?>')">Zmień hasło</button>
+                        
 
                         <form method="post" class="form-inline">
                             <?= csrf_field() ?>
