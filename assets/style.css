@@ -28,6 +28,52 @@
     --mono: Consolas, "SF Mono", Menlo, monospace;
 }
 
+/* --- Tryb ciemny (data-theme="dark") --- */
+[data-theme="dark"] {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #21262d;
+    --border: #30363d;
+    --text: #e6e6e6;
+    --muted: #8b949e;
+    --primary: #6f42c1;
+    --primary-dark: #5a3296;
+    --primary-soft: #2d1b4e;
+    --success: #238636;
+    --success-soft: #1e3a22;
+    --warning: #c47d14;
+    --warning-soft: #3f2d0a;
+    --danger: #e63946;
+    --danger-soft: #331f25;
+    --sidebar: #0d1117;
+    --sidebar-soft: #1e293b;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,.4);
+}
+
+/* --- Tryb jasny (data-theme="light") --- */
+[data-theme="light"] {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --surface-2: #f1f5f9;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --muted: #64748b;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-soft: #eff6ff;
+    --success: #157346;
+    --success-soft: #d1e7dd;
+    --warning: #854d0e;
+    --warning-soft: #fff7ec;
+    --danger: #dc3545;
+    --danger-soft: #f8d7da;
+    --sidebar: #f8f9fa;
+    --sidebar-soft: #e3f2fd;
+}
+
 * { box-sizing: border-box; }
 
 html, body { height: 100%; }

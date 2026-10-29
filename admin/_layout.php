@@ -26,11 +26,6 @@ function layout_header(string $title, string $active = ''): void
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?= e($title) ?> – <?= e(APP_NAME) ?></title>
         <link rel="stylesheet" href="<?= e(app_asset_url('assets/style.css')) ?>">
-        <style>
-            /* Tryb ciemny / jasny */
-            html[data-theme="dark"] body { background: #1e1e1e; color: #d4d4d4; }
-            html[data-theme="light"] body { background: #f5f5f5; color: #111; }
-        </style>
     </head>
     <body class="page-panel">
     <div class="layout">
