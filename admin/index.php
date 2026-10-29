@@ -59,6 +59,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($akcja, ['moj_kod', 'kod_e
     redirect(app_url('admin/index.php'));
 }
 
+/* --- Zmiana własnego hasła ----------------------------------------------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $akcja === 'zmien_haslo_self') {
+    csrf_require($_POST['csrf'] ?? null);
+    $haslo = (string) ($_POST['haslo'] ?? '');
+
+    if (strlen($haslo) < 8) {
+        flash('warning', 'Nowe hasło musi mieć co najmniej 8 znaków.');
+    } else {
+        $pdo = db();
+        $pdo->prepare('UPDATE users SET haslo_hash = :h, updated_at = :n WHERE id = :id')
+            ->execute([':h' => password_hash($haslo, PASSWORD_DEFAULT), ':n' => date('Y-m-d H:i:s'), ':id' => (int) $user['id']]);
+        log_action('zmien_haslo_sobie', 'user_id=' . $user['id'], (int) $user['id']);
+        flash('success', 'Twoje hasło zostało zmienione.');
+    }
+    redirect(app_url('admin/index.php'));
+}
+
 /* --- Statystyki --------------------------------------------------------- */
 $pdo = db();
 
@@ -216,6 +233,7 @@ layout_header('Panel startowy', 'index.php');
             <a class="btn btn-ghost" href="<?= e(app_url('admin/slajd_form.php')) ?>">+ Dodaj slajd</a>
             <a class="btn btn-ghost" href="<?= e(app_url('admin/testy.php')) ?>">Testy</a>
             <a class="btn btn-ghost" href="<?= e(app_url('admin/uzytkownicy.php')) ?>">Użytkownicy</a>
+            <a class="btn btn-ghost" href="javascript:void(0)" onclick="zmienHaslo()">Zmień moje hasło</a>
         </div>
 
         <h3 class="card-subtitle">Ostatnie zdarzenia</h3>
@@ -234,5 +252,27 @@ layout_header('Panel startowy', 'index.php');
         <?php endif; ?>
     </div>
 </section>
+
+<script>
+    function zmienHaslo() {
+        const newPassword = prompt('Wpisz nowe hasło (minimum 8 znaków):');
+        if (newPassword === null || newPassword.trim().length === 0) return;
+        if (newPassword.length < 8) {
+            alert('Hasło musi mieć co najmniej 8 znaków.');
+            return;
+        }
+        // Wyślij hasło przez formularz ukryty
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            <input type="hidden" name="csrf" value="<?= csrf_token() ?>">
+            <input type="hidden" name="akcja" value="zmien_haslo_self">
+            <input type="hidden" name="haslo" value="<?= htmlspecialchars($newPassword) ?>">
+        };
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+</script>
 
 <?php layout_footer(); ?>
