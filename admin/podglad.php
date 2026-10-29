@@ -16,14 +16,14 @@ $tylkoPublikowane = !$pokazSzkice;
 // jest zarezerwowany dla grupy firmy (omijałby blokady).
 if (!$isFirma && $prezentacjaId <= 0) {
     flash('info', 'Wybierz prezentację z listy, aby ją odtworzyć.');
-    redirect(app_url('admin/prezentacje.php'));
+    redirect(app_url('admin/testy.php'));
 }
 
 $prezentacja = null;
 $tytul = 'Wszystkie slajdy';
 $backUrl = $isFirma
     ? app_url('admin/materialy.php')
-    : app_url('admin/prezentacje.php');
+    : app_url('admin/testy.php');
 $backLabel = '← Panel';
 
 $potwierdzona = false;
@@ -43,12 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $prezentacjaId > 0 && !$isFirma && 
 
         if (!$prezentacjaPotw) {
             flash('error', 'Prezentacja nie istnieje.');
-            redirect(app_url('admin/prezentacje.php'));
+            redirect(app_url('admin/testy.php'));
         }
 
         if ($prezentacjaPotw['status'] !== 'opublikowany') {
             flash('warning', 'Ta prezentacja nie jest jeszcze opublikowana.');
-            redirect(app_url('admin/prezentacje.php'));
+            redirect(app_url('admin/testy.php'));
         }
 
         $blokadaTestuPotw = blokujacy_test(
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $prezentacjaId > 0 && !$isFirma && 
 
         if ($blokadaTestuPotw !== null) {
             flash('warning', 'Zanim potwierdzisz zapoznanie się z tą prezentacją, rozwiąż test „' . $blokadaTestuPotw['tytul'] . '”.');
-            redirect(app_url('admin/prezentacje.php'));
+            redirect(app_url('admin/testy.php'));
         }
 
         if (!$potwierdzona) {
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $prezentacjaId > 0 && !$isFirma && 
             flash('info', 'Zapoznanie z tą prezentacją zostało już potwierdzone.');
         }
 
-        redirect(app_url('admin/prezentacje.php'));
+        redirect(app_url('admin/testy.php'));
     }
 }
 
@@ -80,12 +80,12 @@ if ($prezentacjaId > 0) {
 
     if (!$prezentacja) {
         flash('error', 'Prezentacja nie istnieje.');
-        redirect(app_url('admin/prezentacje.php'));
+        redirect(app_url('admin/testy.php'));
     }
 
     if (!$isFirma && $prezentacja['status'] !== 'opublikowany') {
         flash('warning', 'Ta prezentacja nie jest jeszcze opublikowana.');
-        redirect(app_url('admin/prezentacje.php'));
+        redirect(app_url('admin/testy.php'));
     }
 
     // Prezentacja o numerze N jest zablokowana do rozwiązania testu N-1.
@@ -98,14 +98,14 @@ if ($prezentacjaId > 0) {
 
         if ($blokadaTestu !== null) {
             flash('warning', 'Zanim obejrzysz tę prezentację, rozwiąż test „' . $blokadaTestu['tytul'] . '”.');
-            redirect(app_url('admin/prezentacje.php'));
+            redirect(app_url('admin/testy.php'));
         }
     }
 
     $tytul = (string) $prezentacja['tytul'];
     $backUrl = $isFirma
-        ? app_url('admin/prezentacje.php?akcja=edytuj&id=' . $prezentacjaId)
-        : app_url('admin/prezentacje.php');
+        ? app_url('admin/testy.php?akcja=edytuj&id=' . $prezentacjaId)
+        : app_url('admin/testy.php');
     $backLabel = $isFirma ? '← Edycja prezentacji' : '← Prezentacje';
 
     $sql = 'SELECT s.*, u.imie AS autor
@@ -164,7 +164,7 @@ $uklady = [
     <?php endif; ?>
     <button type="button" class="btn btn-ghost btn-sm" id="previewFullscreen" aria-label="Pełny ekran">⛶ Pełny ekran</button>
     <button type="button" class="btn btn-ghost btn-sm" id="previewSound" aria-label="Wyłącz dźwięk slajdów" aria-pressed="true" title="Dźwięk slajdów: włączony">🔊</button>
-    <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/prezentacje.php')) ?>">Prezentacje</a>
+    <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/testy.php')) ?>">Prezentacje</a>
 </header>
 
 <?php if (!$slajdy): ?>
@@ -172,7 +172,7 @@ $uklady = [
         <?php if ($prezentacja): ?>
             <p>ta prezentacja nie jest zakonczona</p>
             <?php if ($isFirma): ?>
-                <a class="btn btn-primary" href="<?= e(app_url('admin/prezentacje.php?akcja=edytuj&id=' . $prezentacjaId)) ?>">Dodaj slajdy</a>
+                <a class="btn btn-primary" href="<?= e(app_url('admin/testy.php?akcja=edytuj&id=' . $prezentacjaId)) ?>">Dodaj slajdy</a>
             <?php else: ?>
                 <?php if (!$potwierdzona): ?>
                     <p class="muted small">Materiał nie ma jeszcze slajdów. Potwierdź zapoznanie się z prezentacją, aby odblokować test.</p>
@@ -186,7 +186,7 @@ $uklady = [
                     <button class="btn btn-primary" type="button" disabled>Zapoznałem(am) się z prezentacją ✓</button>
                     <a class="btn btn-ghost" href="<?= e(app_url('admin/testy.php')) ?>">Przejdź do testów →</a>
                 <?php endif; ?>
-                <a class="btn btn-ghost" href="<?= e(app_url('admin/prezentacje.php')) ?>">Wróć do prezentacji</a>
+                <a class="btn btn-ghost" href="<?= e(app_url('admin/testy.php')) ?>">Wróć do prezentacji</a>
             <?php endif; ?>
         <?php else: ?>
             <p>Brak slajdów do wyświetlenia.</p>
