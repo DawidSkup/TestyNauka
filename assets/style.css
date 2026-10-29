@@ -119,6 +119,8 @@ small { font-size: .8rem; }
     position: sticky;
     top: 0;
     height: 100vh;
+    border-right: 1px solid var(--border);
+    box-shadow: 2px 0 5px rgba(0,0,0,.05);
 }
 
 .sidebar-brand { display: flex; align-items: center; gap: 10px; }
