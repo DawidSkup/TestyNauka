@@ -239,12 +239,75 @@
         const prevBtn = document.getElementById('previewPrev');
         const nextBtn = document.getElementById('previewNext');
         const fsBtn = document.getElementById('previewFullscreen');
+        const soundBtn = document.getElementById('previewSound');
         const backLink = document.getElementById('previewBack');
         let index = 0;
+
+        /* Krótki dźwięk przy zmianie slajdu (Web Audio, bez plików). */
+        let audioCtx = null;
+        let soundOn = true;
+        try {
+            soundOn = window.localStorage.getItem('tn-slide-sound') !== '0';
+        } catch (err) {
+            soundOn = true;
+        }
+
+        function playSlideSound() {
+            if (!soundOn) return;
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended' && audioCtx.resume) {
+                    audioCtx.resume();
+                }
+
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(620, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.11);
+                gain.gain.setValueAtTime(0.0001, now);
+                gain.gain.exponentialRampToValueAtTime(0.07, now + 0.012);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.18);
+                osc.addEventListener('ended', function () {
+                    try { osc.disconnect(); gain.disconnect(); } catch (err) { /* ignore */ }
+                });
+            } catch (err) {
+                /* dźwięk jest opcjonalny – brak wsparcia nie może przerwać prezentacji */
+            }
+        }
+
+        function updateSoundButton() {
+            if (!soundBtn) return;
+            soundBtn.textContent = soundOn ? '🔊' : '🔇';
+            soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+            soundBtn.setAttribute('aria-label', soundOn ? 'Wyłącz dźwięk slajdów' : 'Włącz dźwięk slajdów');
+            soundBtn.title = soundOn ? 'Dźwięk slajdów: włączony' : 'Dźwięk slajdów: wyłączony';
+        }
+
+        if (soundBtn) {
+            soundBtn.addEventListener('click', function () {
+                soundOn = !soundOn;
+                try {
+                    window.localStorage.setItem('tn-slide-sound', soundOn ? '1' : '0');
+                } catch (err) { /* ignore */ }
+                updateSoundButton();
+                playSlideSound();
+            });
+        }
+        updateSoundButton();
 
         function show(i) {
             if (!slides.length) return;
             if (i < 0 || i >= slides.length) return;
+            const previous = index;
             index = i;
             slides.forEach(function (s, n) { s.classList.toggle('is-current', n === index); });
             if (counter) counter.textContent = (index + 1) + ' / ' + slides.length;
@@ -256,6 +319,7 @@
                 nextBtn.style.display = 'inline-flex';
                 nextBtn.disabled = index >= slides.length - 1;
             }
+            if (previous !== index) playSlideSound();
         }
 
         if (prevBtn) {

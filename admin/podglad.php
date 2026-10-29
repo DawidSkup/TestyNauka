@@ -163,6 +163,7 @@ $uklady = [
         <?php endif; ?>
     <?php endif; ?>
     <button type="button" class="btn btn-ghost btn-sm" id="previewFullscreen" aria-label="Pełny ekran">⛶ Pełny ekran</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="previewSound" aria-label="Wyłącz dźwięk slajdów" aria-pressed="true" title="Dźwięk slajdów: włączony">🔊</button>
     <a class="btn btn-ghost btn-sm" href="<?= e(app_url('admin/prezentacje.php')) ?>">Prezentacje</a>
 </header>
 
