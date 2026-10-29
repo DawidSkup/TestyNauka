@@ -70,8 +70,8 @@
     --warning-soft: #fff7ec;
     --danger: #ef4444;
     --danger-soft: #fecaca;
-    --sidebar: #f8f9fa;
-    --sidebar-soft: #e2e8f0;
+    --sidebar: #334155;
+    --sidebar-soft: #4f5d75;
 }
 
 * { box-sizing: border-box; }
