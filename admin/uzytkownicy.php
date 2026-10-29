@@ -465,6 +465,13 @@ function render_tabela_kont(array $lista, array $biezacy): void
                                 Usuń
                             </button>
                         </form>
+                        <form method="post" class="form-inline" style="margin-left: 12px;">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="akcja" value="zmien_haslo">
+                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                            <input type="hidden" name="haslo" value="">
+                        </form>
+                        <button type="button" class="btn btn-sm btn-warning" onclick="return zmieniaHaslo(this, '<?= $u['id'] ?>')">Zmień hasło</button>
 
                         <form method="post" class="form-inline">
                             <?= csrf_field() ?>
@@ -477,6 +484,20 @@ function render_tabela_kont(array $lista, array $biezacy): void
             </tbody>
         </table>
     </div>
+    <script>
+        function zmieniaHaslo(button, id) {
+            const newPassword = prompt('Wpisz nowe hasło (minimum 8 znaków):');
+            if (newPassword === null || newPassword.trim().length === 0) return false;
+            if (newPassword.length < 8) {
+                alert('Hasło musi mieć co najmniej 8 znaków.');
+                return false;
+            }
+            const form = button.form;
+            form.querySelector('input[name="haslo"]').value = newPassword;
+            form.submit();
+            return false;
+        }
+    </script>
     <?php
 }
 
