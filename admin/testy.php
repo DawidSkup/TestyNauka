@@ -48,10 +48,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nextNum = (int) $stmt->fetchColumn();
         $tytul = 'Test ' . $nextNum;
 
-        $stmt = $pdo->prepare('INSERT INTO testy (tytul, opis, status, autor_id, created_at, updated_at) VALUES (:tytul, :opis, "opublikowany", :autor_id, :now, :now)');
+        $stmt = $pdo->prepare('INSERT INTO testy (tytul, opis, status, autor_id, created_at, updated_at) VALUES (:tytul, :opis, "szkic", :autor_id, :now, :now)');
         $stmt->execute([':tytul' => $tytul, ':opis' => $opis, ':autor_id' => (int) $user['id'], ':now' => $now]);
         $newId = (int) $pdo->lastInsertId();
-        flash('success', 'Test dodany i opublikowany. Dodaj teraz pytania i odpowiedzi.');
+        flash('success', 'Test dodany jako szkic. Dodaj pytania i odpowiedzi, a następnie opublikuj test.');
         redirect(app_url('admin/testy.php?akcja=edytuj&test_id=' . $newId));
     }
 

@@ -457,21 +457,48 @@ function render_tabela_kont(array $lista, array $biezacy): void
                             </button>
                         </form>
 
-                        <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="usun">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Usunięcie trwale usunie konto, wszystkie kody, slajdy i wyniki testów.');">
-                                Usuń
-                            </button>
-                        </form>
-                        
+                        <?php if ($u['grupa'] === GROUP_FIRMA && (int) $u['id'] !== (int) $biezacy['id']): ?>
+                            <form method="post" class="form-inline">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="akcja" value="wymaga_kod">
+                                <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                                <button type="submit" class="btn btn-sm <?= (int) $u['wymaga_kod'] === 1 ? 'btn-ghost' : 'btn-secondary' ?>">
+                                    <?= (int) $u['wymaga_kod'] === 1 ? 'Wyłącz wymóg kodu' : 'Wymaga kodu' ?>
+                                </button>
+                            </form>
+                        <?php endif; ?>
 
-                        <form method="post" class="form-inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="akcja" value="kod">
-                            <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
-                            
+                        <?php if ((int) $u['id'] !== (int) $biezacy['id']): ?>
+                            <form method="post" class="form-inline">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="akcja" value="przełącz">
+                                <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                                <button type="submit" class="btn btn-sm <?= (int) $u['aktywny'] === 1 ? 'btn-ghost' : 'btn-secondary' ?>">
+                                    <?= (int) $u['aktywny'] === 1 ? 'Zablokuj' : 'Odblokuj' ?>
+                                </button>
+                            </form>
+                        <?php endif; ?>
+
+                        <?php if ($u['grupa'] === GROUP_FIRMA && (int) $u['id'] !== (int) $biezacy['id']): ?>
+                            <button type="button" class="btn btn-sm btn-ghost" onclick="zmieniaHaslo(this, <?= (int) $u['id'] ?>)">Reset hasła</button>
+                            <form method="post" class="form-inline" style="display:none" id="resetForm<?= (int) $u['id'] ?>">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="akcja" value="reset">
+                                <input type="hidden" name="user_id" value="<?= (int) $u['id'] ?>">
+                                <input type="hidden" name="haslo" value="">
+                            </form>
+                        <?php endif; ?>
+
+                        <?php if ((int) $u['id'] !== (int) $biezacy['id']): ?>
+                            <form method="post" class="form-inline">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="akcja" value="usun">
+                                <input type="hidden" name="user_id" value="<?= e((string) $u['id']) ?>">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Czy na pewno chcesz usunąć tego użytkownika? Usunięcie trwale usunie konto, wszystkie kody, slajdy i wyniki testów.');">
+                                    Usuń
+                                </button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -486,9 +513,11 @@ function render_tabela_kont(array $lista, array $biezacy): void
                 alert('Hasło musi mieć co najmniej 8 znaków.');
                 return false;
             }
-            const form = button.form;
-            form.querySelector('input[name="haslo"]').value = newPassword;
-            form.submit();
+            const form = document.getElementById('resetForm' + id);
+            if (form) {
+                form.querySelector('input[name="haslo"]').value = newPassword;
+                form.submit();
+            }
             return false;
         }
     </script>
