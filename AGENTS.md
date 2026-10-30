@@ -381,6 +381,6 @@ TestyNauka/
       a użytkownik zaznacza wszystkie poprawne (punkty tylko za pełne, poprawne zaznaczenie).
 
 Status realizacji: **wszystkie kryteria spełnione**. Test integracyjny `php tools/testy.php`
-obejmuje **111 kontroli**. Część kontroli nadal zakłada wcześniejsze zachowania (kod
-użytkownika jednorazowy, HTTP 403 przy braku uprawnień, generowanie nowego kodu przy
-każdym żądaniu) i wymaga zaktualizowania do stanu opisanego w tym dokumencie.
+obejmuje **111 kontroli** sprawdzających zachowania opisane w tym dokumencie – stały kod
+użytkownika grupy `materialy`, przekierowanie przy braku uprawnień oraz ponowne użycie
+istniejącego aktywnego kodu.

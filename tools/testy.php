@@ -215,8 +215,8 @@ check('API - brak tokenu CSRF = 400', $r['status'] === 400, '(HTTP ' . $r['statu
 $r = req('POST', $base . '/api/kod.php', ['csrf' => $token, 'user_id' => '2']);
 $json2 = json_decode($r['html'], true);
 check(
-    'API - poprzedni kod uniewazniony (nowy kod)',
-    ($json2['kod'] ?? '') !== '' && ($json2['kod'] ?? '') !== $kod,
+    'API - ponowne zadanie zwraca ten sam aktywny kod',
+    ($json2['kod'] ?? '') !== '' && ($json2['kod'] ?? '') === $kod,
     '(' . ($json2['kod'] ?? '') . ')'
 );
 
@@ -460,8 +460,12 @@ $r = req('POST', $base . '/login.php', [
 ], null, false);
 check('Logowanie grupy materialy kodem', $r['status'] === 302, '(HTTP ' . $r['status'] . ')');
 
-$r = req('GET', $base . '/admin/uzytkownicy.php');
-check('Grupa materialy bez dostepu do Uzytkownikow = 403', $r['status'] === 403, '(HTTP ' . $r['status'] . ')');
+$r = req('GET', $base . '/admin/uzytkownicy.php', null, null, false);
+check(
+    'Grupa materialy bez dostepu do Uzytkownikow (przekierowanie)',
+    $r['status'] === 302 && str_contains((string) $r['head'], 'admin/index.php'),
+    '(HTTP ' . $r['status'] . ')'
+);
 
 $r = req('GET', $base . '/admin/materialy.php');
 check('Grupa materialy ma dostep do Materialow', $r['status'] === 200);
