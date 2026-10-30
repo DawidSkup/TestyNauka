@@ -44,69 +44,64 @@ if ($jestFirma) {
 
     layout_header('Wyniki wszystkich użytkowników', 'wyniki.php');
     ?>
-    <section class="page panel">
-        <div class="layout">
-            <main class="content">
-                <div class="page-header">
-                    <h1 class="page-title">Wyniki wszystkich użytkowników</h1>
-                    <p class="muted small">Podgląd wyników wszystkich aktywnych użytkowników</p>
-                </div>
 
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
+    <section class="card">
+        <h2 class="card-title">Wyniki wszystkich użytkowników</h2>
+        <p class="muted small">Podgląd wyników wszystkich aktywnych użytkowników</p>
+
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Użytkownik</th>
+                    <th>Grupa</th>
+                    <?php foreach ($numeryTestow as $numer): ?>
+                        <th>Test <?= e((string) $numer) ?></th>
+                    <?php endforeach; ?>
+                </tr>
+                </thead>
+                <tbody>
+                <?php if (empty($users)): ?>
+                    <tr>
+                        <td colspan="<?= 2 + count($numeryTestow) ?>" class="muted">Brak użytkowników</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($users as $u): ?>
+                        <?php
+                        $uid        = (int) $u['id'];
+                        $grupaLabel = GROUPS[$u['grupa']] ?? $u['grupa'];
+                        ?>
                         <tr>
-                            <th>Użytkownik</th>
-                            <th>Grupa</th>
+                            <td>
+                                <strong><?= e($u['imie']) ?></strong><br>
+                                <span class="muted small"><?= e($u['email']) ?></span>
+                            </td>
+                            <td><?= e($grupaLabel) ?></td>
                             <?php foreach ($numeryTestow as $numer): ?>
-                                <th>Test <?= e((string) $numer) ?></th>
+                                <?php
+                                $numerInt = (int) $numer;
+                                $testData = $testy[$numerInt] ?? null;
+                                $testId   = $testData['id'] ?? null;
+                                $res      = null;
+
+                                if ($testId !== null && isset($allResults[$uid][$testId])) {
+                                    $res = $allResults[$uid][$testId];
+                                }
+                                ?>
+                                <td>
+                                    <?php if ($res !== null): ?>
+                                        <?= e((string) ($res['wynik'] ?? 0)) ?>/<?= e((string) ($res['maks'] ?? 0)) ?>
+                                        <span class="muted"> (<?= e((string) ($res['procent'] ?? 0)) ?>%)</span>
+                                    <?php else: ?>
+                                        <span class="muted">brak</span>
+                                    <?php endif; ?>
+                                </td>
                             <?php endforeach; ?>
                         </tr>
-                        </thead>
-                        <tbody>
-                        <?php if (empty($users)): ?>
-                            <tr>
-                                <td colspan="<?= 2 + count($numeryTestow) ?>" class="muted">Brak użytkowników</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($users as $u): ?>
-                                <?php
-                                $uid        = (int) $u['id'];
-                                $grupaLabel = GROUPS[$u['grupa']] ?? $u['grupa'];
-                                ?>
-                                <tr>
-                                    <td>
-                                        <strong><?= e($u['imie']) ?></strong><br>
-                                        <span class="muted small"><?= e($u['email']) ?></span>
-                                    </td>
-                                    <td><?= e($grupaLabel) ?></td>
-                                    <?php foreach ($numeryTestow as $numer): ?>
-                                        <?php
-                                        $numerInt = (int) $numer;
-                                        $testData = $testy[$numerInt] ?? null;
-                                        $testId   = $testData['id'] ?? null;
-                                        $res      = null;
-
-                                        if ($testId !== null && isset($allResults[$uid][$testId])) {
-                                            $res = $allResults[$uid][$testId];
-                                        }
-                                        ?>
-                                        <td>
-                                            <?php if ($res !== null): ?>
-                                                <?= e((string) ($res['wynik'] ?? 0)) ?>/<?= e((string) ($res['maks'] ?? 0)) ?>
-                                                <span class="muted"> (<?= e((string) ($res['procent'] ?? 0)) ?>%)</span>
-                                            <?php else: ?>
-                                                <span class="muted">brak</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    <?php endforeach; ?>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </main>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </section>
     <?php
@@ -122,52 +117,47 @@ if ($jestFirma) {
 
     layout_header('Moje wyniki', 'wyniki.php');
     ?>
-    <section class="page panel">
-        <div class="layout">
-            <main class="content">
-                <div class="page-header">
-                    <h1 class="page-title">Moje wyniki</h1>
-                    <p class="muted small">Tylko Twoje wyniki</p>
-                </div>
 
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                        <tr>
-                            <th>Test</th>
-                            <th>Wynik</th>
-                            <th>Procent</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($numeryTestow as $numer): ?>
-                            <?php
-                            $numerInt = (int) $numer;
-                            $testData = $testy[$numerInt] ?? null;
-                            $testId   = $testData['id'] ?? null;
-                            ?>
-                            <tr>
-                                <td>Test <?= e((string) $numerInt) ?></td>
-                                <td>
-                                    <?php if ($testId !== null && isset($userResults[$testId])): ?>
-                                        <?= e((string) ($userResults[$testId]['wynik'] ?? 0)) ?>/<?= e((string) ($userResults[$testId]['maks'] ?? 0)) ?> (<?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%)
-                                    <?php else: ?>
-                                        <span class="muted">brak</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($testId !== null && isset($userResults[$testId])): ?>
-                                        <?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%
-                                    <?php else: ?>
-                                        0%
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </main>
+    <section class="card">
+        <h2 class="card-title">Moje wyniki</h2>
+        <p class="muted small">Tylko Twoje wyniki</p>
+
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>Wynik</th>
+                    <th>Procent</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($numeryTestow as $numer): ?>
+                    <?php
+                    $numerInt = (int) $numer;
+                    $testData = $testy[$numerInt] ?? null;
+                    $testId   = $testData['id'] ?? null;
+                    ?>
+                    <tr>
+                        <td>Test <?= e((string) $numerInt) ?></td>
+                        <td>
+                            <?php if ($testId !== null && isset($userResults[$testId])): ?>
+                                <?= e((string) ($userResults[$testId]['wynik'] ?? 0)) ?>/<?= e((string) ($userResults[$testId]['maks'] ?? 0)) ?> (<?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%)
+                            <?php else: ?>
+                                <span class="muted">brak</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($testId !== null && isset($userResults[$testId])): ?>
+                                <?= e((string) ($userResults[$testId]['procent'] ?? 0)) ?>%
+                            <?php else: ?>
+                                0%
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     </section>
     <?php
