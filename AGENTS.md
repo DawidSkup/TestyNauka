@@ -16,13 +16,14 @@ Na stronie logowania użytkownik **wybiera sposób logowania** (dwie zakładki):
 | Zakładka        | Kto się loguje       | Jakie dane                          | Jak działa                                                              |
 |-----------------|-----------------------|-------------------------------------|-------------------------------------------------------------------------|
 | **Administrator**| grupa `firma`        | e-mail + hasło                      | sesja z regeneracją ID; przy koncie z flagą `wymaga_kod` dodatkowo kod   |
-| **Użytkownik**  | grupa `materialy` lub `firma` | **tylko 6-znakowy kod z e-maila**   | kod jest jedynym poświadczeniem – konsumowany przy logowaniu            |
+| **Użytkownik**  | grupa `materialy` lub `firma` | **tylko 6-znakowy kod z e-maila**   | kod jest jedynym poświadczeniem; kod `materialy` jest stały, kod `firma` jednorazowy |
 
 - Logowanie w zakładce „Administrator” kontem z grupy `materialy` jest **odrzucone**
   (komunikat: „To konto nie ma uprawnień administratora…”); kod z zakładki „Użytkownik”
   loguje **oba typy kont** – użytkownika i administratora.
-- Kod w zakładce „Użytkownik” musi być **aktywnym, niewykorzystanym i niewygasłym** kodem
-  o celu `logowanie` w bazie; po poprawnym użyciu jest oznaczany jako zużyty (jednorazowy).
+- Kod w zakładce „Użytkownik” musi być **aktywnym i niewygasłym** kodem o celu `logowanie`
+  w bazie. Kod konta grupy `materialy` jest **stały (bezterminowy) i wielokrotnego użytku**;
+  kod konta grupy `firma` jest **jednorazowy** – po poprawnym użyciu jest oznaczany jako zużyty.
 - Wylogowanie kasuje sesję; po zalogowaniu hasłem konto z flagą `wymaga_kod` trafia
   dodatkowo na `weryfikacja.php` (drugi czynnik).
 - Throttling: 5 błędnych prób logowania (w obu zakładkach) blokuje sesję na 10 minut.
@@ -66,8 +67,9 @@ Na stronie logowania użytkownik **wybiera sposób logowania** (dwie zakładki):
 3. Odbiorca wchodzi na `rejestracja.php` i podaje: e-mail, kod, **hasło** (z potwierdzeniem).
    Imię i nazwisko są **opcjonalne** – pole można pominąć.
 4. Konto powstaje **aktywne i aktywowane**, w grupie wskazanej w zaproszeniu, a użytkownik
-   zostaje zalogowany. Przy **kolejnych** logowaniach konto grupy `materialy` loguje się
-   już samym kodem z e-maila (zakładka „Użytkownik”).
+   zostaje zalogowany. Kod rejestracyjny staje się **stałym kodem logowania** konta grupy
+   `materialy`; przy **kolejnych** logowaniach konto loguje się tym samym kodem
+   (zakładka „Użytkownik”).
 
 Dodatkowe reguły:
 
@@ -191,8 +193,11 @@ widzieć wynik.
 - **Format kodu:** 6 znaków – **wielkie litery (A–Z) oraz cyfry (0–9)**, losowo generowany
   (alfabet bez znaków mylących `I`, `O`, `0`, `1`, np. `K7M2QX`); kod zawsze zawiera
   co najmniej jedną cyfrę i jedną wielką literę.
-- **Ważność kodu:** 15 minut; poprzedni niewykorzystany kod danego celu jest unieważniany
-  przy generowaniu nowego.
+- **Ważność kodu:** 15 minut dla kodów jednorazowych (konto grupy `firma`, `aktywacja`,
+  `rejestracja`). Kod logowania konta grupy `materialy` jest **stały (bezterminowy)**.
+- **Ponowne generowanie:** jeśli dla użytkownika i celu istnieje już aktywny kod, system
+  zwraca **ten sam kod** (nie tworzy nowego i go nie unieważnia). Unieważnienie następuje
+  dopiero po wygaśnięciu kodu albo po wyłączeniu wymogu kodu dla konta.
 - **Cele kodu:** `logowanie` (jedynym poświadczeniem w zakładce „Użytkownik” oraz drugi
   czynnik dla kont z flagą `wymaga_kod`), `aktywacja` (reset hasła przez istniejące konto)
   oraz `rejestracja` (kod zaproszenia w tabeli `zaproszenia`).
@@ -204,7 +209,8 @@ widzieć wynik.
   (formularz na panelu startowym odrzuca własny adres, a grupa `materialy` nie ma przycisku).
   Konta grupy `materialy` mają wymóg kodu zawsze – logują się samym kodem z e-maila.
 - **Wysyłka:** e-mail HTML z tematem i treścią w UTF-8; informacja o błędzie wysyłki
-  zapisywana w tabeli `log`. Kod jest jednorazowy – po poprawnym użyciu oznaczany jako zużyty.
+  zapisywana w tabeli `log`. Kod konta grupy `firma` jest jednorazowy – po poprawnym użyciu
+  oznaczany jako zużyty; kod konta grupy `materialy` jest stały i nie jest zużywany.
 - **Bezpieczeństwo:** kody weryfikacyjne przechowywane są w bazie, wysyłka nie ujawnia kodu
   w logach aplikacji poza przypadkiem błędu wysyłki.
 
@@ -216,6 +222,8 @@ widzieć wynik.
 | `kody`  | `id`, `user_id` → `users`, `kod`, `cel`, `wygasa_at`, `uzyty_at`, `wyslany_at`, `created_at`        |
 | `zaproszenia` | `id`, `email`, `grupa`, `kod`, `wygasa_at`, `uzyty_at`, `utworzony_przez` → `users`, `created_at` |
 | `slajdy`| `id`, `tytul`, `tresc`, `obraz`, `uklad`, `przycisk`, `link`, `status`, `kolejnosc`, `autor_id` → `users`, `created_at`, `updated_at` |
+| `prezentacje` | `id`, `tytul`, `opis`, `status`, `autor_id` → `users`, `created_at`, `updated_at` |
+| `prezentacje_slajdy` | `prezentacja_id` → `prezentacje`, `slajd_id` → `slajdy`, `kolejnosc` (PK: prezentacja + slajd) |
 | `testy` | `id`, `tytul`, `opis`, `status`, `autor_id` → `users`, `created_at`, `updated_at`                |
 | `pytania` | `id`, `test_id` → `testy`, `tresc`, `kolejnosc`                                              |
 | `odpowiedzi` | `id`, `pytanie_id` → `pytania`, `tresc`, `poprawna`, `kolejnosc`                        |
@@ -225,7 +233,9 @@ widzieć wynik.
 
 - Hasła: `password_hash()` / `password_verify()` (`PASSWORD_DEFAULT`).
 - Kaskady: `kody.user_id` → `users` (`ON DELETE CASCADE`), `slajdy.autor_id` → `users` (`SET NULL`),
-  `zaproszenia.utworzony_przez` → `users` (`SET NULL`), `pytania.test_id` → `testy`
+  `zaproszenia.utworzony_przez` → `users` (`SET NULL`), `prezentacje.autor_id` → `users`
+  (`SET NULL`), `prezentacje_slajdy.prezentacja_id` → `prezentacje` i
+  `prezentacje_slajdy.slajd_id` → `slajdy` (`ON DELETE CASCADE`), `pytania.test_id` → `testy`
   (`ON DELETE CASCADE`), `odpowiedzi.pytanie_id` → `pytania` (`ON DELETE CASCADE`),
   `wyniki_testow.user_id` → `users` i `wyniki_testow.test_id` → `testy` (`ON DELETE CASCADE`),
   `testy.autor_id` → `users` (`SET NULL`),
@@ -237,10 +247,12 @@ widzieć wynik.
 ```
 TestyNauka/
 ├── AGENTS.md            # ten dokument (specyfikacja)
+├── plan.md              # notatki planistyczne
+├── README.md
 ├── config.php           # stałe konfiguracyjne
 ├── db.php               # połączenie PDO + schemat + dane startowe
 ├── helpers.php          # helpery (escape, CSRF, flash, kod, e-mail)
-├── auth.php             # sesja, uprawnienia grupy, kody jednorazowe
+├── auth.php             # sesja, uprawnienia grupy, kody dostępu
 ├── index.php            # przekierowanie do panelu / logowania
 ├── login.php            # logowanie: zakładka Administrator (e-mail + hasło) / Użytkownik (kod)
 ├── logout.php
@@ -253,8 +265,10 @@ TestyNauka/
 │   ├── uzytkownicy.php  # grupa firmy: wysyłka kodów rejestracyjnych + konta
 │   ├── materialy.php    # grupa firmy: lista i zarządzanie slajdami
 │   ├── slajd_form.php   # dodawanie / edycja slajdu
+│   ├── prezentacje.php  # grupa firmy: tworzenie i edycja prezentacji; użytkownik: podgląd
 │   ├── podglad.php      # prezentacja opublikowanych slajdów
-│   └── testy.php        # testy: zarządzanie (firma), rozwiązywanie i wyniki (użytkownik)
+│   ├── testy.php        # testy: zarządzanie (firma), rozwiązywanie i wyniki (użytkownik)
+│   └── wyniki.php       # podgląd wyników wszystkich użytkowników
 ├── api/
 │   └── kod.php          # AJAX: generuj i wyślij kod
 ├── assets/
@@ -268,7 +282,8 @@ TestyNauka/
 │   ├── manual_kod.php   # ręczna kontrola konta wymagającego kodu administratora
 │   ├── mailpit.php      # podgląd wiadomości w Mailpit
 │   ├── utworz_admina.php # konto administratora bez kodu (CLI)
-│   └── utworz_uzytkownika.php # konto wymagające kodu administratora (CLI)
+│   ├── utworz_uzytkownika.php # konto wymagające kodu administratora (CLI)
+│   └── _debug2.php      # skrypt diagnostyczny (debug)
 └── data/                # baza SQLite + pliki uploadowane (poza repo)
 ```
 
@@ -277,16 +292,17 @@ TestyNauka/
 1. Każdy formularz POST zawiera token CSRF (`csrf_token()` / `csrf_require()`).
 2. Wszystkie dane wstawiane do HTML przechodzą przez `e()` (`htmlspecialchars`).
 3. Sesja: `httponly` + `samesite=Lax`, `session_regenerate_id(true)` przy logowaniu.
-4. Dostęp do sekcji sterowany grupą (`require_group()`), brak dostępu → 403.
+4. Dostęp do sekcji sterowany grupą (`require_group()`); brak uprawnień → komunikat flash
+   i przekierowanie do `admin/index.php`. Brak tokenu CSRF kończy żądanie HTTP 400.
 5. Upload: biała lista typów MIME, limit rozmiaru, losowa nazwa pliku, brak wykonywania.
 6. Zapytania SQL wyłącznie z parametrami wiązanymi (PDO prepared statements).
 7. Brak ujawniania haseł i kodów w logach aplikacji.
 8. Throttling logowania: 5 błędnych próbl blokuje sesję na 10 minut (analogicznie rejestracja).
 9. Kod rejestracyjny jest jednorazowy i powiązany z konkretnym adresem e-mail – nie pozwala
    założyć konta dla innego adresu niż ten, na który został wysłany.
-10. Logowanie kodem (zakładka „Użytkownik”) przyjmuje wyłącznie **aktywny, niewykorzystany
-    i niewygasły** kod o celu `logowanie`; kod jest konsumowany w tej samej chwili, więc
-    nie da się zalogować się ponownie tym samym kodem.
+10. Logowanie kodem (zakładka „Użytkownik”) przyjmuje wyłącznie **aktywny i niewygasły** kod
+    o celu `logowanie`. Kod konta grupy `firma` jest konsumowany w tej samej chwili
+    (jednorazowy); kod konta grupy `materialy` jest stały i może być użyty wielokrotnie.
 
 ## 8. Uruchomienie
 
@@ -312,24 +328,28 @@ TestyNauka/
 
 - [x] Logowanie e-mail + hasło działa, błędne dane pokazują czytelny komunikat.
 - [x] Użytkownik grupy `firma` widzi sekcję `Użytkownicy`; użytkownik grupy `materialy` nie.
-- [x] Użytkownik grupy `materialy` nie ma dostępu do strony `admin/uzytkownicy.php` (403).
+- [x] Użytkownik grupy `materialy` nie ma dostępu do strony `admin/uzytkownicy.php` –
+      żądanie jest przekierowywane do `admin/index.php` z komunikatem o braku uprawnień.
 - [x] Przycisk „Generuj i wyślij kod” tworzy 6-znakowy kod z cyfr i wielkich liter
       i wysyła go na e-mail użytkownika.
-- [x] Kod wygasa po 15 minutach i działa tylko raz.
+- [x] Kod jednorazowy (konto grupy `firma`) wygasa po 15 minutach i działa tylko raz;
+      kod logowania konta grupy `materialy` jest stały i działa wielokrotnie.
 - [x] Materiały dodaje się wyłącznie jako slajdy – brak uploadu dokumentów.
 - [x] Slajd da się edytować, opublikować, przesunąć i obejrzeć w podglądzie.
 - [x] Administrator **nie zakłada kont** – sekcja `Użytkownicy` wysyła jedynie kod rejestracyjny
       na e-mail (bez tworzenia rekordu w tabeli `users`).
 - [x] Odbiorca kodu zakłada konto samodzielnie w `rejestracja.php` (e-mail + kod + hasło),
       a konto od razu działa w grupie wskazanej w zaproszeniu.
-- [x] Kod rejestracyjny jest jednorazowy, wygasa po 15 minutach i nie działa dla innego e-maila.
+- [x] Kod rejestracyjny (zaproszenie) jest jednorazowy, wygasa po 15 minutach i nie działa
+      dla innego e-maila; po założeniu konta `materialy` staje się stałym kodem logowania.
 - [x] Konto z włączonym wymogiem kodu **nie da się zalogować** bez kodu wysłanego przez
       administratora; po zużyciu kodu wymóg obowiązuje przy każdym kolejnym logowaniu.
 - [x] Strona logowania pozwala wybrać tryb: **Administrator** (e-mail + hasło, tylko grupa
       `firma`) albo **Użytkownik** (tylko 6-znakowy kod z e-maila, grupa `materialy`
       i `firma`).
-- [x] Logowanie kontem grupy `materialy` w trybie „Administrator” jest odrzucane, a kod
-      w trybie „Użytkownik” loguje oba typy kont i jest jednorazowy (po użyciu przestaje działać).
+- [x] Logowanie kontem grupy `materialy` w trybie „Administrator” jest odrzucane. Kod
+      w trybie „Użytkownik” loguje oba typy kont; kod grupy `firma` jest jednorazowy,
+      a kod grupy `materialy` jest stały i działa wielokrotnie.
 - [x] Panel startowy pozwala wysłać kod na e-mail wskazanego konta (administratora lub
       użytkownika); odbiorca loguje się nim w zakładce „Użytkownik”.
 
@@ -361,5 +381,6 @@ TestyNauka/
       a użytkownik zaznacza wszystkie poprawne (punkty tylko za pełne, poprawne zaznaczenie).
 
 Status realizacji: **wszystkie kryteria spełnione**. Test integracyjny `php tools/testy.php`
-obejmuje 110 kontroli: **97 zielonych**, 13 znanych porażek **poza sekcją Testy** (slajdy,
-upload, rejestracja) – sekcja Testy: **20/20 zielonych**.
+obejmuje **111 kontroli**. Część kontroli nadal zakłada wcześniejsze zachowania (kod
+użytkownika jednorazowy, HTTP 403 przy braku uprawnień, generowanie nowego kodu przy
+każdym żądaniu) i wymaga zaktualizowania do stanu opisanego w tym dokumencie.
